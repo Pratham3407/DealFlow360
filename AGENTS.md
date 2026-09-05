@@ -17,9 +17,9 @@ The next agent must be able to understand the current implementation state witho
 ## Current implementation state
 
 - The authenticated web client now has a Stitch-inspired executive reports screen at `/reports`.
-- `web/src/routes/ReportsPage.tsx` contains the interactive presentation layer for KPI, revenue, margin, alert and commercial-rep views.
+- `web/src/routes/ReportsPage.jsx` contains the interactive presentation layer for KPI, revenue, margin, alert and commercial-rep views; `web/` otherwise remains the existing TypeScript frontend.
 - Reporting metrics currently use an explicitly labelled preview dataset because the reporting API slice is not implemented yet. Do not describe these values as live backend facts until the reporting endpoints are added.
-- The previous standalone `frontend/` directory is an untracked Vite starter and is not the product client; the product client is `web/`.
+- The standalone `frontend/` starter has been removed; the product client and the designed UI now live under `web/`.
 
 **Project:** DealFlow360
 

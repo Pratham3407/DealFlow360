@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import { Download, FileText, Search } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
@@ -77,19 +77,7 @@ const months = [
 ];
 const actuals = [42, 58, 47, 72, 64, 83, 69, 91, 77, 88, 74, 96];
 
-function Kpi({
-  label,
-  value,
-  change,
-  note,
-  icon,
-}: {
-  label: string;
-  value: string;
-  change: string;
-  note: string;
-  icon: string;
-}): ReactNode {
+function Kpi({ label, value, change, note, icon }) {
   return (
     <article className="rounded-lg border border-hairline bg-surface p-4 shadow-xs">
       <div className="flex items-start justify-between gap-3">
@@ -113,7 +101,7 @@ function Kpi({
   );
 }
 
-function RevenueChart(): ReactNode {
+function RevenueChart() {
   return (
     <div className="mt-5 flex h-52 gap-3">
       <div className="flex flex-col justify-between pb-7 text-[10px] text-slate-400">
@@ -157,7 +145,7 @@ function RevenueChart(): ReactNode {
   );
 }
 
-export function ReportsPage(): ReactNode {
+export function ReportsPage() {
   const [team, setTeam] = useState("All regional teams");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -327,7 +315,6 @@ export function ReportsPage(): ReactNode {
           </button>
         </Panel>
       </section>
-      +{" "}
       <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,1fr)]">
         <Panel
           title="Discount governance & margin realization"
