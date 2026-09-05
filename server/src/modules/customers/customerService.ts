@@ -1,6 +1,7 @@
+import { Prisma } from '../../generated/prisma/client';
 import { prisma } from '../../db/prisma';
 import { ConflictError, NotFoundError } from '../../http/errors';
-import { PERCENT_SCALE, toDecimalString } from '../../http/fields';
+import { PERCENT_SCALE, formatPercent, toDecimalString } from '../../http/fields';
 import {
   activeFilter,
   pageArgs,
@@ -45,7 +46,7 @@ type TierRow = {
   id: string;
   code: string;
   name: string;
-  defaultDiscountCeiling: { toString: () => string };
+  defaultDiscountCeiling: Prisma.Decimal;
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -57,7 +58,7 @@ function toTierView(row: TierRow): CustomerTierView {
     id: row.id,
     code: row.code,
     name: row.name,
-    defaultDiscountCeiling: row.defaultDiscountCeiling.toString(),
+    defaultDiscountCeiling: formatPercent(row.defaultDiscountCeiling),
     active: row.active,
     customerCount: row._count.customers,
     discountRuleCount: row._count.discountRules,
@@ -112,7 +113,7 @@ export async function createCustomerTier(
       after: {
         code: created.code,
         name: created.name,
-        defaultDiscountCeiling: created.defaultDiscountCeiling.toString(),
+        defaultDiscountCeiling: formatPercent(created.defaultDiscountCeiling),
       },
     });
 
@@ -235,7 +236,7 @@ type CustomerRow = {
   active: boolean;
   createdAt: Date;
   updatedAt: Date;
-  tier: { id: string; code: string; name: string; defaultDiscountCeiling: { toString: () => string } };
+  tier: { id: string; code: string; name: string; defaultDiscountCeiling: Prisma.Decimal };
   _count: { users: number; quotations: number };
 };
 
@@ -247,7 +248,7 @@ function toCustomerView(row: CustomerRow): CustomerView {
     tierId: row.tierId,
     tierCode: row.tier.code,
     tierName: row.tier.name,
-    tierDiscountCeiling: row.tier.defaultDiscountCeiling.toString(),
+    tierDiscountCeiling: formatPercent(row.tier.defaultDiscountCeiling),
     contactName: row.contactName,
     contactEmail: row.contactEmail,
     contactPhone: row.contactPhone,

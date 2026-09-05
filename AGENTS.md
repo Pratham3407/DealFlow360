@@ -17,9 +17,9 @@ The next agent must be able to understand the current implementation state witho
 ## Current implementation state
 
 - The authenticated web client now has a Stitch-inspired executive reports screen at `/reports`.
-- `web/src/routes/ReportsPage.jsx` contains the interactive presentation layer for KPI, revenue, margin, alert and commercial-rep views; `web/` otherwise remains the existing TypeScript frontend.
+- `web/src/routes/ReportsPage.tsx` contains the interactive presentation layer for KPI, revenue, margin, alert and commercial-rep views.
 - Reporting metrics currently use an explicitly labelled preview dataset because the reporting API slice is not implemented yet. Do not describe these values as live backend facts until the reporting endpoints are added.
-- The standalone `frontend/` starter has been removed; the product client and the designed UI now live under `web/`.
+- The previous standalone `frontend/` directory is an untracked Vite starter and is not the product client; the product client is `web/`.
 
 **Project:** DealFlow360
 
@@ -1008,7 +1008,8 @@ A future agent should be able to continue without rediscovering the entire task.
 
 **Last updated:** 2026-09-05
 
-**Current phase:** Phase 1 (Foundation) complete. Phase 2 (Master data) is next.
+**Current phase:** Phases 1-3 complete (foundation, master data, quotation
+engine). Risk engine is next. No admin/quotation UI yet.
 
 **Stack (implemented, versions pinned exactly):**
 
@@ -1025,8 +1026,8 @@ Layout is an npm-workspaces monorepo: `server/`, `web/`.
 
 ```text
 Monorepo scaffold, shared tsconfig, env validation (Zod, fail-fast)
-PostgreSQL schema for the ENTIRE domain model - 31 tables, one migration
-  + 25 CHECK constraints and 1 partial unique index hand-written into the migration
+PostgreSQL schema for the ENTIRE domain model - 31 tables, three migrations
+  + 27 CHECK constraints, 1 partial unique index, 1 sequence
 Authentication
   - server-side session store; opaque 256-bit token, only its SHA-256 digest stored
   - httpOnly + SameSite=Lax cookie, Secure in production
@@ -1036,15 +1037,42 @@ Authentication
     plus a dummy hash on the miss path so timing does not leak existence
   - separate internal and portal login endpoints that refuse each other's credentials
 RBAC
-  - capability model transcribed from docs/RBAC.md (28 capabilities x 5 roles)
-  - requireAuth / requireRole / requireCapability / requireInternal / requireCustomer
+  - capability model transcribed from docs/RBAC.md (32 capabilities x 5 roles)
+  - requireAuth / requireRole / requireCapability / requireAnyCapability /
+    assertCapability / requireInternal / requireCustomer
   - internal and portal guards mounted on ROUTERS, not per handler
   - role and customerId re-read from the database on every request
 Audit
   - append-only writer that takes a transaction client, so state change and
     audit row commit together; no update or delete path exists
   - actor FK is ON DELETE RESTRICT, so attribution cannot be erased
+  - recordConfigChange + diffFields: master-data writes record only the columns
+    that actually changed, with their previous values
 Admin user provisioning (list / create / deactivate, sessions revoked on deactivate)
+MASTER DATA (Phase 2) - full CRUD behind capability gates, every write audited:
+  - customers/      CustomerTier, Customer
+  - catalog/        Category, Product (server-computed unit margin), ProductVariant
+  - pricing/        PriceList, PriceListItem, DiscountRule
+                    + resolveEffectiveCeiling(): pure, reused by the risk engine
+  - approvalConfig/ ApprovalRule + validateApprovalBands(): rejects any edit that
+                    would leave a gap, overlap or uncovered risk score
+  - inventory/      Warehouse, Inventory (Option A semantics), stock receive
+  - subscriptionPlans/  SubscriptionPlan
+  - recommendationConfig/ ProductPairing, Promotion
+QUOTATION ENGINE (Phase 3) - server-authoritative commercial arithmetic:
+  - quotationMath.ts      PURE calculation, one defined order, Prisma.Decimal only
+  - quotationStates.ts    PURE transition table + edit gate
+  - priceResolution.ts    price list -> base price, plus variant uplift (in pricing/)
+  - quotationNumber.ts    Q-<year>-<6 digits> from a Postgres sequence
+  - create / list / get / patch / recalculate / submit
+  - lines: add (merging identical terms) / update / remove
+  - version bump on material change only; conditional-update concurrency
+  - rep scoped to own quotations; 404 not 403 on a scoped miss
+  - cost and margin OMITTED for callers without margin:view
+Uniform list contract { data, meta: { total, limit, offset } } on every collection
+  endpoint, /api/users included
+Canonical decimal serialisation (formatMoney / formatPercent / formatWeight /
+  formatRisk) so the same stored value never renders two ways
 Structured error taxonomy -> stable machine-readable codes + Prisma error mapping
 Health endpoint that reports database reachability
 Demo seed data per docs/SEED_DATA.md (idempotent)
@@ -1056,7 +1084,7 @@ Web: Vite + Tailwind shell, both sign-in surfaces, capability-filtered navigatio
 ## In Progress
 
 ```text
-Nothing. Slice ended at a clean, tested state.
+Nothing. Slice 3 ended at a clean, fully tested state.
 ```
 
 ## Blocked
@@ -1068,24 +1096,114 @@ None.
 ## Verification performed
 
 ```text
-npm test          -> 69 passed (5 files: 2 unit, 3 integration)
-npm run typecheck -> clean, both workspaces (strict + noUncheckedIndexedAccess
-                     + verbatimModuleSyntax, generated Prisma client included)
-npm run build     -> web production build succeeds
-Live end-to-end against the real server on :4000 and Vite on :5173:
-  - all 6 seeded accounts sign in at their correct surface
-  - admin lists users; rep / manager / finance get 403; customer gets 403
-  - rep cannot create an ADMIN (403, nothing written)
-  - a role field smuggled into the login body -> 400
-  - logout kills the session server-side
-  - audit rows written by real traffic contain no password material
-  - httpOnly cookie survives the Vite proxy; /api/auth/me returns the DB role
-Database constraints verified by direct SQL rejection tests
+npm test          -> 460 passed, 19 files, 0 failed  (284s)
+                     unit 8 files: password, permissions, pagination,
+                                   approvalBands, discountRules, priceResolution,
+                                   quotationMath, quotationStates
+                     integration 11 files: auth, rbac, users, customers, catalog,
+                                   pricing, inventory, subscriptionPlans,
+                                   recommendationConfig, quotations, quotationLines
+npm run typecheck -> clean, both workspaces
+npm run build     -> web production build succeeds (316 kB / 97 kB gzip)
+
+Slice 3 targeted runs, in the order they were written:
+  tests/unit/priceResolution.test.ts   -> 9 passed
+  tests/unit/quotationMath.test.ts     -> 21 passed
+  tests/unit/quotationStates.test.ts   -> 21 passed
+  tests/integration/quotations.test.ts -> 43 passed
+  tests/integration/quotationLines.test.ts -> 34 passed
+  regression: auth + rbac + users      -> 51 passed
+  regression: all unit + pricing + catalog -> 191 passed
+
+Arithmetic is pinned against the canonical quotation in docs/SEED_DATA.md, asserted
+as exact strings rather than floats: subtotal 1750000.00, discount 201000.00,
+tax 278820.00, grand total 1827820.00, cost 1250000.00, margin 299000.00.
+Also asserted: grandTotal == sum of lineTotal, discountTotal == sum of
+lineDiscount, order-discount allocation summing to the paisa, 0.10+0.20 == 0.30.
+
+Slice 2 live smoke against the real server on :4000, 38 checks - see the slice 2
+entry in §36. Not repeated for slice 3; the integration suite exercises the same
+Express app in-process through Supertest.
 ```
 
 ---
 
 # 36. Recent Changes
+
+## 2026-09-05 — Slice 2: Phase 2 Master data (backend)
+
+**What changed.** All 12 master-data entities gained full CRUD behind the existing
+capability gates, plus two pure rule functions that later slices depend on.
+
+**Why.** `docs/IMPLEMENTATION_PLAN.md` Phase 2. The quotation engine cannot be
+built without customers, a catalogue, prices and ceilings to read, and the risk
+engine needs `resolveEffectiveCeiling` to exist before it can score anything.
+Backend only, per instruction — admin configuration screens are a later pass.
+
+**Where.**
+
+```text
+server/src/http/pagination.ts              NEW  shared list contract
+server/src/http/fields.ts                  NEW  Zod field primitives + decimal formatters
+server/src/http/middleware/auth.ts         +requireAnyCapability, +assertCapability
+server/src/http/routes.ts                  11 new routers mounted
+server/src/modules/audit/auditService.ts   AuditEntity +10 master-data names
+server/src/modules/audit/configAudit.ts    NEW  diffFields, recordConfigChange
+server/src/modules/auth/permissions.ts     +4 read capabilities via MASTER_DATA_READS
+server/src/modules/users/{userService,userRoutes}.ts   list -> envelope
+server/src/modules/customers/{customerService,customerRoutes}.ts            NEW
+server/src/modules/catalog/{catalogService,catalogRoutes}.ts                NEW
+server/src/modules/pricing/{discountRules,pricingService,pricingRoutes}.ts  NEW
+server/src/modules/approvalConfig/{approvalBands,approvalRuleService,approvalRuleRoutes}.ts NEW
+server/src/modules/inventory/{inventoryService,inventoryRoutes}.ts          NEW
+server/src/modules/subscriptionPlans/{subscriptionPlanService,subscriptionPlanRoutes}.ts NEW
+server/src/modules/recommendationConfig/{recommendationConfigService,recommendationConfigRoutes}.ts NEW
+server/prisma/migrations/20260905103502_master_data_constraints/            NEW  4 CHECKs
+server/tests/helpers/fixtures.ts           +seedMasterData, +seedApprovalBands
+server/tests/unit/{pagination,approvalBands,discountRules}.test.ts          NEW
+server/tests/integration/{customers,catalog,pricing,inventory,subscriptionPlans,recommendationConfig}.test.ts NEW
+web/src/lib/api.ts                         +apiList, ListResponse, queryString
+web/src/routes/UsersPage.tsx               reads data.meta.total
+docs/API_SPEC.md                           conventions + every implemented endpoint
+docs/BUSINESS_RULES.md                     "As implemented" for rules 1,2,4,5,6,7,9,11,12
+docs/DOMAIN_MODEL.md                       deviations 8-9: 27 constraints, conventions
+```
+
+**Endpoints added (38).** Paths follow `docs/API_SPEC.md` where it specifies them
+and extend it for the entities it omits:
+
+```text
+/api/customer-tiers          GET POST PATCH/:id
+/api/customers               GET GET/:id POST PATCH/:id
+/api/categories              GET POST PATCH/:id
+/api/products                GET GET/:id POST PATCH/:id
+                             GET/:id/variants POST/:id/variants PATCH/:id/variants/:variantId
+/api/subscription-plans      GET POST PATCH/:id
+/api/price-lists             GET GET/:id POST PATCH/:id
+                             PUT/:id/items/:productId DELETE/:id/items/:productId
+/api/discount-rules          GET GET/effective POST PATCH/:id
+/api/approval-rules          GET POST PATCH/:id
+/api/warehouses              GET POST PATCH/:id
+                             GET/:id/inventory PATCH/:id/inventory/:productId
+                             POST/:id/inventory/:productId/receive
+/api/product-pairings        GET POST PATCH/:id
+/api/promotions              GET POST PATCH/:id
+```
+
+**How it works.** Every module follows one shape: a `select` const that
+structurally cannot leak private columns, a `toXView` mapper that formats decimals
+canonically, service-layer validation ahead of Prisma so callers get business
+errors rather than constraint violations, and `prisma.$transaction` wrapping the
+write together with `recordConfigChange(tx, …)`. Nothing in master data is
+deleted — every entity carries `active` — except price-list items, which hold no
+history and whose removal simply falls pricing back to `base_price`.
+
+**What was tested.** See §35 "Verification performed". 263 new tests, taking the
+suite from 69 to 332.
+
+**What remains.** The admin configuration UI (slice 2d).
+
+**Known problems.** See §38, item 10.
 
 ## 2026-09-05 — Slice 1: Phase 1 Foundation
 
@@ -1136,7 +1254,7 @@ handlers, carry the internal/portal boundary.
 
 **What was tested.** See §35 "Verification performed".
 
-**What remains.** Everything from Phase 2 onward — see §39.
+**What remains.** Everything from Phase 3 onward — see §39.
 
 **Known problems.** See §38.
 
@@ -1234,10 +1352,101 @@ Approval is live only while `approved_version == version`.
 
 ## Invariants pushed into the database _(2026-09-05)_
 
-25 CHECK constraints plus a partial unique index. Notably
+27 CHECK constraints plus a partial unique index, across two migrations. Notably
 `(role = 'CUSTOMER') = (customer_id IS NOT NULL)`, which makes portal scope a
-database invariant. Application code still validates first so users get business
-errors rather than constraint violations; the constraints are the backstop.
+database invariant, and `product_type <> 'RECURRING' OR subscription_plan_id IS
+NOT NULL`, which makes a recurring product without a billing cadence impossible.
+Application code still validates first so users get business errors rather than
+constraint violations; the constraints are the backstop.
+
+Correction: §35 and this section previously claimed 25. The init migration
+actually added 23; the slice-2 migration added 4, giving 27. Verify with
+`SELECT count(*) FROM pg_constraint WHERE contype='c' AND
+connamespace='public'::regnamespace;`
+
+## Inventory stock semantics — Option A _(2026-09-05)_
+
+```text
+availableQuantity = units free to allocate
+reservedQuantity  = units already committed to a fulfillment
+physical stock    = availableQuantity + reservedQuantity
+```
+
+Allocation moves units from available to reserved inside one transaction, so the
+two counters cannot disagree and no relational constraint between them is needed.
+Both are independently non-negative in the database.
+
+Consequence for the fulfillment slice: allocatable stock is `availableQuantity`
+directly, never `available - reserved`. The configuration API deliberately has no
+way to set `reservedQuantity` — the field is absent from a `.strict()` schema, so
+a request carrying it is rejected — because editing it would let the same unit be
+promised to two fulfillments.
+
+The rejected alternative (Option B) read `availableQuantity` as total physical
+stock with reserved as a subset, needing `reserved <= available` enforced and
+making every allocation a two-column read-modify-write.
+
+## Canonical decimal serialisation _(2026-09-05)_
+
+`Prisma.Decimal.toString()` drops trailing zeros, so the same stored value
+surfaced as `"80000"` from one endpoint and `"80000.00"` from another. Every
+decimal response field now goes through `formatMoney` / `formatPercent` /
+`formatWeight` / `formatRisk` in `src/http/fields.ts`, fixing the scale per column
+family (2 / 3 / 4 / 4). A client can compare figures from different endpoints
+without normalising them first.
+
+Model row types use `Prisma.Decimal` rather than a structural
+`{ toString(): string }` placeholder, so the compiler catches a field that skipped
+a formatter.
+
+## Master-data write conventions _(2026-09-05)_
+
+Every module in `src/modules/*` that owns configuration follows one shape, and a
+new one should too:
+
+```text
+select const        -> structurally cannot leak a private column
+toXView mapper      -> canonical decimal formatting, derived fields computed here
+service validation  -> runs BEFORE Prisma, so callers get business errors
+prisma.$transaction -> write + recordConfigChange(tx, …) commit together
+```
+
+All configuration writes share `AuditAction.CONFIGURATION_CHANGED`, with
+`entityType` distinguishing what changed, so "every configuration change last
+week" is one indexed query. `diffFields` records only the columns that actually
+differ together with their previous values, and returns null for a no-op so no
+empty audit row is written.
+
+Nothing in master data is deleted; every entity carries `active`. The single
+exception is `PriceListItem`, which holds no history — removing an entry simply
+falls pricing back to `Product.base_price`.
+
+## Read capabilities separated from write capabilities _(2026-09-05)_
+
+`customers:read`, `catalog:read`, `pricing:read` and `inventory:read` are granted
+to all four internal roles via one `MASTER_DATA_READS` list spread into each,
+while writes stay on the `*:configure` capabilities that `docs/RBAC.md` assigns.
+Reason: a sales rep cannot build a quotation without reading the customer list and
+the catalogue, but must not be able to change either. Declaring the reads once
+stops the four role lists drifting apart.
+
+`CustomerTier` is the one entity with per-field authority: the router admits
+either `customers:configure` or `discount-rules:configure`, then the handler uses
+`assertCapability` so only an admin may rename or deactivate a tier while only a
+manager-or-admin may move its ceiling. `docs/RBAC.md` gives those two rows to
+different roles and a tier carries both kinds of field.
+
+## Approval bands must tile the risk axis _(2026-09-05)_
+
+`validateApprovalBands` runs on every create and patch against the whole projected
+active set, not just the row being touched. Bands are half-open `[min, max)` with
+a null maximum meaning unbounded, and must cover `[0, ∞)` with no gap and no
+overlap. A gap is a silent approval bypass — a score landing in it would route to
+nobody — which §6 invariant 5 forbids. The common trigger is deactivating a middle
+band, which is why the whole set is validated rather than the edited row.
+
+`GET /api/approval-rules` returns a `coverage: { valid, problems[] }` block beside
+the rows so a configuration screen can warn without a second request.
 
 ## `tsx` at runtime, `tsc --noEmit` for typechecking _(2026-09-05)_
 
@@ -1295,9 +1504,25 @@ exact version — they need their scripts to fetch platform binaries.
 8. 24 of the 31 tables have no code touching them yet. They were created in one
    migration on purpose (the domain model is frozen in docs), but they are
    unexercised, so expect small corrections as each slice lands.
+   Slice 2 reduced this: 12 master-data tables are now exercised. The untouched
+   set is now the transactional half - quotations, approvals, negotiation,
+   fulfillment, billing, deal health.
 
 9. Web bundle is a single 300 kB chunk. Fine at this size; revisit route-level
    code splitting when the module count grows.
+
+10. ProductPairing and Promotion cascade-delete with their product. Products are
+    deactivated rather than deleted in normal operation, so this is latent, but a
+    future hard delete would silently drop recommendations. Pinned by a test.
+
+11. Live smoke writes touch the DEVELOPMENT database. The slice-2 run created a
+    warehouse, a discount rule and +5 laptop stock, all reverted afterwards and
+    verified back to seeded values. Prefer `npm test` (which uses
+    dealflow360_test) for anything repeatable.
+
+12. Master data has no admin UI. Every Phase 2 endpoint is reachable only by HTTP
+    client; the configuration screens listed in docs/AGENT_INSTRUCTIONS.md 11 are
+    a later pass.
 ```
 
 Do not claim an issue is fixed unless repository evidence and tests support that claim.
@@ -1306,15 +1531,15 @@ Do not claim an issue is fixed unless repository evidence and tests support that
 
 # 39. Next Recommended Work
 
-Foundation is done. Continue in this order — each slice should finish with tests,
-documentation and an `AGENTS.md` update before the next begins.
+Slice 2 is finished — backend, tests and documentation. Continue in order. Each
+slice should end with tests, documentation and an `AGENTS.md` update.
 
 ```text
-Slice 2  Master data
-         Customers, categories, products, variants, price lists, discount rules,
-         approval rules, warehouses + inventory, subscription plans.
-         Full CRUD behind the existing capability gates, audited via
-         CONFIGURATION_CHANGED. Admin config screens.
+Slice 2d Admin configuration UI
+         Screens for the 12 master-data entities. The endpoints, list envelope and
+         capability list the navigation already reads are all in place.
+         Optional: it can also be deferred until after the quotation engine, since
+         the demo flow needs a quotation builder more than it needs config screens.
 
 Slice 3  Quotation engine
          Quotation + lines, price resolution (price list -> base price fallback),
@@ -1323,14 +1548,15 @@ Slice 3  Quotation engine
          Quotation builder UI.
 
 Slice 4  Risk engine
-         Effective ceiling resolution (most specific rule wins), per-line
-         violation points, blended score per the formula in §37. Persist the
-         per-line explanation. Covers AT-03, AT-04, AT-05.
+         Reuse resolveEffectiveCeiling() and violationPoints() from
+         modules/pricing/discountRules.ts - do not reimplement them. Blended score
+         per the formula in §37. Persist the per-line explanation.
+         Covers AT-03, AT-04, AT-05.
 
 Slice 5  Approval engine
-         Route from ApprovalRule bands, multi-level MANAGER -> FINANCE,
-         approve / reject / return, invalidation on material change.
-         Covers AT-06, AT-07.
+         Route with bandForRisk() from modules/approvalConfig/approvalBands.ts,
+         multi-level MANAGER -> FINANCE, approve / reject / return, invalidation on
+         material change. Covers AT-06, AT-07.
 
 Slice 6  Recommendations (pairings, promotions, margin floor) - AT-08
 Slice 7  Fulfillment (allocation, override, backorder, consolidation) - AT-09, AT-10
@@ -1342,14 +1568,19 @@ Slice 11 Demo hardening
 
 Notes for whoever picks this up:
 
-````text
+```text
 - Read docs/BUSINESS_RULES.md and the relevant state machine before writing code.
-- Reuse recordAudit(tx, ...) inside the same transaction as the state change.
+- Copy the module shape described in §37 "Master-data write conventions".
+- Reuse recordAudit(tx, ...) / recordConfigChange(tx, ...) inside the same
+  transaction as the state change.
 - Ask for a capability, never a role, in route guards.
+- Every decimal in a response goes through a formatter from src/http/fields.ts.
+- Every collection endpoint returns { data, meta } via src/http/pagination.ts.
+- Allocatable stock is Inventory.availableQuantity directly (Option A, §37).
 - Portal responses must never carry margin, cost, risk internals or approval notes.
 - The AuditAction constant already lists the actions later slices need.
 - Regenerate the Prisma client after any schema change: npm run db:generate.
-
+```
 
 ---
 
@@ -1366,6 +1597,6 @@ Did I test the behavior?
 Did I update the relevant documentation?
 Did I update AGENTS.md?
 Did I leave the next agent enough context?
-````
+```
 
 If any answer is no, the task is not fully complete.

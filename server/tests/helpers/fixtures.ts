@@ -87,3 +87,209 @@ export async function seedBaseline(): Promise<Baseline> {
     users: { admin, rep, manager, finance, acmeBuyer, globexBuyer, inactiveRep },
   };
 }
+
+export interface MasterData {
+  categoryHardwareId: string;
+  categoryServicesId: string;
+  categorySubscriptionsId: string;
+  planMonthlyId: string;
+  productLaptopId: string;
+  productSetupId: string;
+  productSupportId: string;
+  productWarrantyId: string;
+  priceListGoldId: string;
+  warehouseMainId: string;
+  warehouseEastId: string;
+  /** Tier-wide rule on Gold, ceiling 15%. */
+  discountRuleGoldTierWideId: string;
+  /** Category rule on Gold + Services, ceiling 10% - the stricter one from AT-04. */
+  discountRuleGoldServicesId: string;
+}
+
+/**
+ * Catalogue, pricing and stock built on top of `seedBaseline`.
+ *
+ * Mirrors the shape of docs/SEED_DATA.md - and specifically the Gold-customer,
+ * 15%-hardware, 10%-services arrangement the acceptance tests reason about - so
+ * that ceiling-resolution and margin assertions here mean the same thing as in
+ * the demo. Figures are kept identical to the demo seed for the same reason.
+ */
+export async function seedMasterData(baseline: Baseline): Promise<MasterData> {
+  const [hardware, services, subscriptions] = await Promise.all([
+    prisma.category.create({
+      data: { code: 'HARDWARE', name: 'Hardware', defaultMarginPercent: '25.000' },
+    }),
+    prisma.category.create({
+      data: { code: 'SERVICES', name: 'Services', defaultMarginPercent: '60.000' },
+    }),
+    prisma.category.create({
+      data: { code: 'SUBSCRIPTIONS', name: 'Subscriptions', defaultMarginPercent: '70.000' },
+    }),
+  ]);
+
+  const plan = await prisma.subscriptionPlan.create({
+    data: {
+      code: 'PREMIUM_MONTHLY',
+      name: 'Premium Monthly',
+      interval: 'MONTHLY',
+      prorationRule: 'DAILY_PRORATION',
+      cancellationRule: 'END_OF_PERIOD',
+      refundRule: 'PARTIAL_PRORATED',
+    },
+  });
+
+  const [laptop, setup, support, warranty] = await Promise.all([
+    prisma.product.create({
+      data: {
+        sku: 'HW-LAPTOP-ENT',
+        name: 'Enterprise Laptop',
+        categoryId: hardware.id,
+        productType: 'ONE_TIME',
+        unit: 'unit',
+        basePrice: '80000.00',
+        costPrice: '60000.00',
+        taxPercent: '18.000',
+      },
+    }),
+    prisma.product.create({
+      data: {
+        sku: 'SV-SETUP',
+        name: 'Setup Service',
+        categoryId: services.id,
+        productType: 'ONE_TIME',
+        unit: 'engagement',
+        basePrice: '10000.00',
+        costPrice: '4000.00',
+        taxPercent: '18.000',
+      },
+    }),
+    prisma.product.create({
+      data: {
+        sku: 'SB-SUPPORT-PREM',
+        name: 'Premium Support',
+        categoryId: subscriptions.id,
+        productType: 'RECURRING',
+        unit: 'seat/month',
+        basePrice: '5000.00',
+        costPrice: '1500.00',
+        taxPercent: '18.000',
+        subscriptionPlanId: plan.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        sku: 'SV-WARRANTY-EXT',
+        name: 'Extended Warranty',
+        categoryId: services.id,
+        productType: 'ONE_TIME',
+        unit: 'unit',
+        basePrice: '7500.00',
+        costPrice: '2250.00',
+        taxPercent: '18.000',
+      },
+    }),
+  ]);
+
+  const priceListGold = await prisma.priceList.create({
+    data: {
+      code: 'PL-GOLD-INR',
+      name: 'Gold price list (INR)',
+      customerTierId: baseline.tierGoldId,
+      currency: 'INR',
+      items: {
+        create: [
+          { productId: laptop.id, price: '80000.00' },
+          { productId: setup.id, price: '10000.00' },
+        ],
+      },
+    },
+  });
+
+  // Main is cheaper to ship from, so a demand of 20 laptops should recommend
+  // Main 12 + East 8 once the fulfillment slice lands.
+  const [main, east] = await Promise.all([
+    prisma.warehouse.create({
+      data: {
+        code: 'MAIN',
+        name: 'Main Warehouse',
+        shippingWeight: '1.0000',
+        inventory: { create: [{ productId: laptop.id, availableQuantity: 12, reorderPoint: 5 }] },
+      },
+    }),
+    prisma.warehouse.create({
+      data: {
+        code: 'EAST',
+        name: 'East Depot',
+        shippingWeight: '1.6000',
+        inventory: { create: [{ productId: laptop.id, availableQuantity: 20, reorderPoint: 8 }] },
+      },
+    }),
+  ]);
+
+  const [tierWide, servicesRule] = await Promise.all([
+    prisma.discountRule.create({
+      data: {
+        customerTierId: baseline.tierGoldId,
+        categoryId: null,
+        maximumDiscount: '15.000',
+        priority: 0,
+      },
+    }),
+    prisma.discountRule.create({
+      data: {
+        customerTierId: baseline.tierGoldId,
+        categoryId: services.id,
+        maximumDiscount: '10.000',
+        priority: 10,
+      },
+    }),
+  ]);
+
+  return {
+    categoryHardwareId: hardware.id,
+    categoryServicesId: services.id,
+    categorySubscriptionsId: subscriptions.id,
+    planMonthlyId: plan.id,
+    productLaptopId: laptop.id,
+    productSetupId: setup.id,
+    productSupportId: support.id,
+    productWarrantyId: warranty.id,
+    priceListGoldId: priceListGold.id,
+    warehouseMainId: main.id,
+    warehouseEastId: east.id,
+    discountRuleGoldTierWideId: tierWide.id,
+    discountRuleGoldServicesId: servicesRule.id,
+  };
+}
+
+/**
+ * The three approval bands from AGENTS.md, tiling 0 to infinity with no gap.
+ * Seeded only where a test needs routing configuration to be valid.
+ */
+export async function seedApprovalBands(): Promise<void> {
+  await prisma.approvalRule.createMany({
+    data: [
+      {
+        name: 'No approval required',
+        minimumRisk: '0.0000',
+        maximumRisk: '4.0000',
+        requiredLevel: 'NONE',
+        priority: 0,
+      },
+      {
+        name: 'Sales Manager approval',
+        minimumRisk: '4.0000',
+        maximumRisk: '15.0000',
+        requiredLevel: 'MANAGER',
+        priority: 10,
+      },
+      {
+        name: 'Sales Manager then Finance approval',
+        minimumRisk: '15.0000',
+        maximumRisk: null,
+        requiredLevel: 'MANAGER_FINANCE',
+        priority: 20,
+      },
+    ],
+  });
+}

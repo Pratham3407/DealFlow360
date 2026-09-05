@@ -394,10 +394,72 @@ required deal-health signals.
 
 ## 8. Database-level invariants
 
-Beyond the schema, the initial migration adds 25 CHECK constraints and one
-partial unique index covering: percentages within 0–100, non-negative money,
-positive quantities, non-negative inventory, coherent approval risk bands,
-ordered billing periods, and at most one tier-wide discount rule per tier
-(Postgres treats NULLs as distinct in ordinary unique indexes, so the Prisma
-`@@unique` alone would not enforce it).
+Beyond the schema, the migrations add 27 CHECK constraints and one partial unique index.
+Application code validates first so callers receive business errors; these are the backstop
+against a bug, a raw query or a future refactor.
+
+`20260905090720_init` — 23 constraints:
+
+- percentages within 0–100 (`customer_tiers`, `discount_rules`, `products`, `quotations`, `quotation_lines`)
+- non-negative money (`products`, `price_list_items`, `quotation_lines`, `invoices`) and positive money (`payments`, `credit_notes`)
+- positive quantities (`quotation_lines`, `invoice_lines`, `subscriptions`, `fulfillment_allocations`, `backorders`)
+- non-negative inventory (`inventory_quantities_nonneg_check`)
+- coherent approval bands (`approval_rules_risk_band_check`)
+- ordered billing periods (`billing_schedules_period_order_check`)
+- version sanity (`quotations_version_positive_check`, `approval_instances_version_positive_check`)
+- portal scope (`users_customer_scope_check`)
+- plus `discount_rules_tier_wide_key`, a partial unique index enforcing at most one tier-wide
+  discount rule per tier — Postgres treats NULLs as distinct in an ordinary unique index, so
+  the Prisma `@@unique` alone would not enforce it
+
+`20260905103502_master_data_constraints` — 4 more, each closing a gap between what a schema
+comment claimed and what the database actually enforced:
+
+- `products_recurring_requires_plan_check` — a `RECURRING` product must reference a subscription plan, since the billing cadence lives on the plan
+- `product_variants_extra_price_nonneg_check` — a negative uplift would be a discount smuggled past the discount rules
+- `warehouses_shipping_weight_positive_check` — a non-positive weight would make a warehouse free or profitable to ship from
+- `promotions_window_order_check` — a promotion window must move forwards; either bound may be open
+
+`20260905135805_quote_number_sequence` — adds `quotation_number_seq`, no constraints.
+`Quotation.quote_number` was `@unique` with no generation strategy. A sequence is the
+only race-free option that does not require locking: two concurrent creates receive
+distinct values without either blocking, which `count(*) + 1` could not guarantee.
+Numbers are formatted `Q-<year>-<6 digits>`; the sequence never resets, so uniqueness
+does not depend on the year and a failed create leaves a harmless gap rather than
+reusing a number.
+
+Verify the count with:
+
+```sql
+SELECT count(*) FROM pg_constraint
+WHERE contype = 'c' AND connamespace = 'public'::regnamespace;
+```
+
+## 9. Master-data conventions
+
+Nothing in master data is deleted; every configurable entity carries `active`, and foreign
+keys are `ON DELETE RESTRICT`, so a product referenced by a historical quotation stays
+resolvable. The single exception is `PriceListItem`: it holds no history, and removing an
+entry simply falls pricing back to `Product.base_price`.
+
+Money, percentages, weights and risk scores are returned as fixed-scale strings (2 / 3 / 4 /
+4 decimal places). `Prisma.Decimal.toString()` drops trailing zeros, which made the same
+stored value render as `"80000"` from one endpoint and `"80000.00"` from another; every
+response now passes through a formatter in `server/src/http/fields.ts`.
+
+## 10. Quotation line positions
+
+`QuotationLine.position` is a **sparse** ordering key, not a dense index. Lines append at
+`max(position) + 1` and are never renumbered after a delete, so gaps are normal. Renumbering
+would transiently collide with the `@@unique([quotationId, position])` index inside the
+transaction, for no benefit — the ordering only needs to be strictly increasing.
+
+Adding a product that already appears on the quotation with the **same variant and the same
+discount** merges into that line by increasing its quantity: two lines on identical terms
+are one commercial fact, and a duplicate would double-count in fulfillment and billing. A
+different variant or discount is a different commercial fact and stays a separate line.
+There is deliberately no unique constraint on `(quotation_id, product_id, variant_id)`,
+because the same product on different terms is legitimate.
+
+
 

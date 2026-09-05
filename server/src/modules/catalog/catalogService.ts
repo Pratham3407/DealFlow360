@@ -2,7 +2,13 @@ import { Prisma } from '../../generated/prisma/client';
 import { ProductType } from '../../generated/prisma/enums';
 import { prisma } from '../../db/prisma';
 import { BusinessRuleError, ConflictError, NotFoundError } from '../../http/errors';
-import { MONEY_SCALE, PERCENT_SCALE, toDecimalString } from '../../http/fields';
+import {
+  MONEY_SCALE,
+  PERCENT_SCALE,
+  formatMoney,
+  formatPercent,
+  toDecimalString,
+} from '../../http/fields';
 import {
   activeFilter,
   pageArgs,
@@ -15,7 +21,7 @@ import type { AuthContext } from '../../http/types';
 import { AuditEntity } from '../audit/auditService';
 import { diffFields, recordConfigChange } from '../audit/configAudit';
 
-type DecimalLike = { toString: () => string };
+type DecimalLike = Prisma.Decimal;
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -60,7 +66,8 @@ function toCategoryView(row: CategoryRow): CategoryView {
     id: row.id,
     code: row.code,
     name: row.name,
-    defaultMarginPercent: row.defaultMarginPercent?.toString() ?? null,
+    defaultMarginPercent:
+      row.defaultMarginPercent === null ? null : formatPercent(row.defaultMarginPercent),
     active: row.active,
     productCount: row._count.products,
     discountRuleCount: row._count.discountRules,
@@ -266,14 +273,14 @@ function toProductView(row: ProductRow): ProductView {
     categoryName: row.category.name,
     productType: row.productType,
     unit: row.unit,
-    basePrice: basePrice.toFixed(MONEY_SCALE),
-    costPrice: costPrice.toFixed(MONEY_SCALE),
-    taxPercent: row.taxPercent.toString(),
-    unitMargin: unitMargin.toFixed(MONEY_SCALE),
+    basePrice: formatMoney(basePrice),
+    costPrice: formatMoney(costPrice),
+    taxPercent: formatPercent(row.taxPercent),
+    unitMargin: formatMoney(unitMargin),
     // Decimal division, never float: a margin figure feeds approval decisions.
     marginPercent: basePrice.isZero()
       ? null
-      : unitMargin.dividedBy(basePrice).times(100).toFixed(PERCENT_SCALE),
+      : formatPercent(unitMargin.dividedBy(basePrice).times(100)),
     description: row.description,
     active: row.active,
     subscriptionPlanId: row.subscriptionPlanId,
@@ -375,8 +382,8 @@ export async function createProduct(
         sku: created.sku,
         name: created.name,
         productType: created.productType,
-        basePrice: created.basePrice.toString(),
-        costPrice: created.costPrice.toString(),
+        basePrice: formatMoney(created.basePrice),
+        costPrice: formatMoney(created.costPrice),
       },
     });
 
@@ -540,7 +547,7 @@ function toVariantView(row: VariantRow): ProductVariantView {
     productId: row.productId,
     attribute: row.attribute,
     value: row.value,
-    extraPrice: row.extraPrice.toString(),
+    extraPrice: formatMoney(row.extraPrice),
     active: row.active,
     createdAt: row.createdAt,
   };
@@ -608,7 +615,7 @@ export async function createProductVariant(
         productId,
         attribute: created.attribute,
         value: created.value,
-        extraPrice: created.extraPrice.toString(),
+        extraPrice: formatMoney(created.extraPrice),
       },
     });
 

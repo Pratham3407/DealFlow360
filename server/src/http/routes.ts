@@ -3,6 +3,17 @@ import { prisma } from '../db/prisma';
 import { requireAuth, requireCustomer, requireInternal } from './middleware/auth';
 import { authRoutes, portalAuthRoutes } from '../modules/auth/authRoutes';
 import { userRoutes } from '../modules/users/userRoutes';
+import { customerRoutes, customerTierRoutes } from '../modules/customers/customerRoutes';
+import { categoryRoutes, productRoutes } from '../modules/catalog/catalogRoutes';
+import { discountRuleRoutes, priceListRoutes } from '../modules/pricing/pricingRoutes';
+import { approvalRuleRoutes } from '../modules/approvalConfig/approvalRuleRoutes';
+import { warehouseRoutes } from '../modules/inventory/inventoryRoutes';
+import { subscriptionPlanRoutes } from '../modules/subscriptionPlans/subscriptionPlanRoutes';
+import { quotationRoutes } from '../modules/quotations/quotationRoutes';
+import {
+  productPairingRoutes,
+  promotionRoutes,
+} from '../modules/recommendationConfig/recommendationConfigRoutes';
 
 /**
  * API surface.
@@ -14,7 +25,8 @@ import { userRoutes } from '../modules/users/userRoutes';
  *
  * The internal and portal guards are mounted on the routers rather than repeated
  * per handler, so a future route cannot be added to the wrong side of the
- * boundary by omission (docs/PRD.md 15).
+ * boundary by omission (docs/PRD.md 15). Each module router then declares its own
+ * capability requirements per route.
  */
 export function buildApiRouter(): Router {
   const api = Router();
@@ -44,7 +56,34 @@ export function buildApiRouter(): Router {
 
   const internal = Router();
   internal.use(requireAuth, requireInternal);
+
+  // Identity
   internal.use('/users', userRoutes);
+
+  // Master data - customers
+  internal.use('/customer-tiers', customerTierRoutes);
+  internal.use('/customers', customerRoutes);
+
+  // Master data - catalogue
+  internal.use('/categories', categoryRoutes);
+  internal.use('/products', productRoutes);
+  internal.use('/subscription-plans', subscriptionPlanRoutes);
+
+  // Master data - pricing and governance
+  internal.use('/price-lists', priceListRoutes);
+  internal.use('/discount-rules', discountRuleRoutes);
+  internal.use('/approval-rules', approvalRuleRoutes);
+
+  // Master data - operations
+  internal.use('/warehouses', warehouseRoutes);
+
+  // Master data - recommendation inputs
+  internal.use('/product-pairings', productPairingRoutes);
+  internal.use('/promotions', promotionRoutes);
+
+  // Transactional - quotation lifecycle
+  internal.use('/quotations', quotationRoutes);
+
   api.use(internal);
 
   return api;

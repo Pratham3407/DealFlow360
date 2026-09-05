@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Prisma } from '../generated/prisma/client';
 
 /**
  * Field primitives shared by the master-data modules.
@@ -75,6 +76,34 @@ export function toDecimalString(value: number, scale: number): string {
 export const MONEY_SCALE = 2;
 export const PERCENT_SCALE = 3;
 export const WEIGHT_SCALE = 4;
+export const RISK_SCALE = 4;
+
+/**
+ * Canonical serialisation for decimal columns.
+ *
+ * `Prisma.Decimal.toString()` drops trailing zeros, so the same stored value can
+ * surface as "80000" from one endpoint and "80000.00" from another. Every
+ * response goes through these instead, so a client can compare and render values
+ * from different endpoints without normalising them first.
+ */
+export function formatMoney(value: DecimalInput): string {
+  return new Prisma.Decimal(value).toFixed(MONEY_SCALE);
+}
+
+export function formatPercent(value: DecimalInput): string {
+  return new Prisma.Decimal(value).toFixed(PERCENT_SCALE);
+}
+
+export function formatWeight(value: DecimalInput): string {
+  return new Prisma.Decimal(value).toFixed(WEIGHT_SCALE);
+}
+
+export function formatRisk(value: DecimalInput): string {
+  return new Prisma.Decimal(value).toFixed(RISK_SCALE);
+}
+
+/** Anything `Prisma.Decimal` can be constructed from. */
+export type DecimalInput = string | number | Prisma.Decimal;
 
 export const uuidParam = (key: string): z.ZodObject<Record<string, z.ZodUUID>> =>
   z.object({ [key]: z.uuid() }) as z.ZodObject<Record<string, z.ZodUUID>>;
