@@ -14,6 +14,13 @@ The next agent must be able to understand the current implementation state witho
 
 # 1. Project Identity
 
+## Current implementation state
+
+- The authenticated web client now has a Stitch-inspired executive reports screen at `/reports`.
+- `web/src/routes/ReportsPage.tsx` contains the interactive presentation layer for KPI, revenue, margin, alert and commercial-rep views.
+- Reporting metrics currently use an explicitly labelled preview dataset because the reporting API slice is not implemented yet. Do not describe these values as live backend facts until the reporting endpoints are added.
+- The previous standalone `frontend/` directory is an untracked Vite starter and is not the product client; the product client is `web/`.
+
 **Project:** DealFlow360
 
 **Type:** B2B Sales Operations / Deal Management Platform
@@ -1173,7 +1180,7 @@ Reason:
 
 Approvals and negotiation changes need to correspond to the quotation state/version being evaluated.
 
-## Server-side sessions rather than JWT *(2026-09-05)*
+## Server-side sessions rather than JWT _(2026-09-05)_
 
 An opaque token in an httpOnly cookie, with only its SHA-256 digest stored.
 
@@ -1183,19 +1190,19 @@ assert its own role. Revocation is a row delete. Costs one indexed lookup per
 request. JWT would have made stale role claims possible and revocation awkward,
 which directly conflicts with §6 invariant 12.
 
-## scrypt from `node:crypto` for password hashing *(2026-09-05)*
+## scrypt from `node:crypto` for password hashing _(2026-09-05)_
 
 Reason: memory-hard, ships with Node, no native build step on Windows, no added
 dependency (§29). Cost parameters are encoded in each hash and `needsRehash`
 reports when a stored hash is below current policy, so cost can be raised later.
 
-## Money as `NUMERIC`, percentages 0–100 *(2026-09-05)*
+## Money as `NUMERIC`, percentages 0–100 _(2026-09-05)_
 
 `Decimal(14,2)` for money, `Decimal(6,3)` for percentages, `Decimal(10,4)` for
 risk scores. Percentages are stored as `12.5` meaning 12.5%. Never binary
 floating point (§24). Arithmetic uses `Prisma.Decimal`.
 
-## Blended risk model — contract for the risk-engine slice *(2026-09-05)*
+## Blended risk model — contract for the risk-engine slice _(2026-09-05)_
 
 The seeded `ApprovalRule` thresholds assume this 0–100 score. Implement it as
 specified or change the seed with it.
@@ -1218,21 +1225,21 @@ Reference points: the canonical quote (Setup Service at 18% against a 10%
 ceiling) scores ≈8.2 → MANAGER, satisfying AT-04; a counter to 30% on that line
 scores ≈20 → MANAGER_FINANCE, satisfying AT-13.
 
-## Approval validity as two integers *(2026-09-05)*
+## Approval validity as two integers _(2026-09-05)_
 
 `Quotation.version` increments on material change and is also the optimistic
 concurrency token. `ApprovalInstance.quotation_version` records what was
 reviewed; `Quotation.approved_version` records what completed the chain.
 Approval is live only while `approved_version == version`.
 
-## Invariants pushed into the database *(2026-09-05)*
+## Invariants pushed into the database _(2026-09-05)_
 
 25 CHECK constraints plus a partial unique index. Notably
 `(role = 'CUSTOMER') = (customer_id IS NOT NULL)`, which makes portal scope a
 database invariant. Application code still validates first so users get business
 errors rather than constraint violations; the constraints are the backstop.
 
-## `tsx` at runtime, `tsc --noEmit` for typechecking *(2026-09-05)*
+## `tsx` at runtime, `tsc --noEmit` for typechecking _(2026-09-05)_
 
 Prisma 7 is ESM-only and emits its client as TypeScript source, and its docs
 recommend `moduleResolution: bundler`, which permits extensionless relative
@@ -1240,14 +1247,14 @@ imports that bare Node ESM would reject. Running through `tsx` avoids that
 mismatch. There is no `tsc` emit step for the server; bundling is deferred to
 demo hardening.
 
-## Prisma pinned to 7.10.0, TypeScript to 5.9.3 *(2026-09-05)*
+## Prisma pinned to 7.10.0, TypeScript to 5.9.3 _(2026-09-05)_
 
 The `prisma` CLI's `latest` npm tag currently points at an `8.0.0` release
 candidate while `@prisma/client` `latest` is `7.10.0`; both are pinned to 7.10.0
 so CLI and client agree. TypeScript is held at the 5.9.x line because that is
 what Prisma 7 states as recommended, even though 7.0.2 is published.
 
-## npm install-scripts allowlist *(2026-09-05)*
+## npm install-scripts allowlist _(2026-09-05)_
 
 npm 12 blocks install scripts by default. `prisma`, `@prisma/engines` and
 `esbuild` are allowlisted in root `package.json` under `allowScripts`, pinned by
@@ -1335,7 +1342,7 @@ Slice 11 Demo hardening
 
 Notes for whoever picks this up:
 
-```text
+````text
 - Read docs/BUSINESS_RULES.md and the relevant state machine before writing code.
 - Reuse recordAudit(tx, ...) inside the same transaction as the state change.
 - Ask for a capability, never a role, in route guards.
@@ -1359,6 +1366,6 @@ Did I test the behavior?
 Did I update the relevant documentation?
 Did I update AGENTS.md?
 Did I leave the next agent enough context?
-```
+````
 
 If any answer is no, the task is not fully complete.
