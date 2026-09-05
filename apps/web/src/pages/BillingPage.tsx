@@ -205,7 +205,7 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
       {invoices.map(inv => {
         const outstanding = inv.amountPaise - inv.amountPaidPaise - inv.creditedPaise;
         return (
-          <div key={inv.id} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border)' }}>
+          <div key={inv.id} className="panel">
             <div className="row between">
               <div>
                 <strong className="mono">{inv.invoiceNumber}</strong>{' '}
@@ -334,7 +334,7 @@ function SubscriptionCard({ sub, busy, onAct }: { sub: Subscription; busy: strin
   const active = sub.status !== 'CANCELLED';
 
   return (
-    <div style={{ marginBottom: 20 }}>
+    <div className={active ? 'panel' : 'panel is-inactive'}>
       <div className="row between">
         <div>
           <strong className="mono">{sub.subscriptionNumber}</strong>{' '}
@@ -567,17 +567,7 @@ function SubscriptionPlans() {
         const interval = modeLabel(INTERVAL_LABEL, plan.interval);
 
         return (
-          <div
-            key={plan.id}
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: 14,
-              marginBottom: 12,
-              background: 'var(--slate-50)',
-              opacity: plan.active ? 1 : 0.6,
-            }}
-          >
+          <div key={plan.id} className={plan.active ? 'panel' : 'panel is-inactive'}>
             <div className="row between" style={{ marginBottom: 8 }}>
               <div>
                 <strong>{plan.name}</strong>{' '}

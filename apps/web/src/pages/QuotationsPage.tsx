@@ -126,7 +126,7 @@ export function QuotationsPage() {
         )}
 
         {(items.length > 0 || page > 1) && (
-          <div className="row between" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--slate-100)' }}>
+          <div className="row between" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-soft)' }}>
             <div className="muted" style={{ fontSize: 12 }}>Page {page}</div>
             <div className="row" style={{ gap: 8 }}>
               <button className="btn secondary" disabled={page <= 1} onClick={() => update('page', String(page - 1))}>

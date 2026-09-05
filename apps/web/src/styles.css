@@ -382,6 +382,28 @@ a:hover { text-decoration: underline; text-underline-offset: 2px; }
 }
 .card > h3:first-child, .card > h2:first-child { margin-top: 0; }
 
+/*
+ * A grouped block nested inside a card — a subscription plan, a warehouse, an
+ * invoice. Slightly recessed so the nesting reads without a second border weight.
+ * Exists as a class rather than an inline style because a hard-coded colour is how
+ * something ends up glowing white in dark mode.
+ */
+.panel {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.panel:last-child { margin-bottom: 0; }
+.panel.is-inactive { opacity: 0.6; }
+.panel > h4:first-child { margin-top: 0; }
+
+/* A key/value list or table sitting inside a panel already has the panel's
+   padding; do not indent it again. */
+.panel > .kv { border-top-color: var(--border); }
+.panel > table { margin: 0; width: 100%; }
+
 /* ============================================================ primitives */
 
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
