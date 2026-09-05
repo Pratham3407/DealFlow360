@@ -76,6 +76,28 @@ risk > threshold_1
 
 The thresholds belong in database configuration.
 
+### As implemented
+
+`ApprovalRule` rows, editable through `/api/approval-rules`. A band is half-open
+`[minimum_risk, maximum_risk)`; a null maximum means unbounded. The seeded configuration:
+
+| Band | Required level |
+|---|---|
+| `[0, 4)` | `NONE` |
+| `[4, 15)` | `MANAGER` |
+| `[15, ∞)` | `MANAGER_FINANCE` |
+
+**The active set must tile `[0, ∞)` with no gap and no overlap.** `validateApprovalBands()`
+in `server/src/modules/approvalConfig/approvalBands.ts` runs on every create and patch
+against the whole *projected* set — not just the row being edited — and rejects the write
+`422` otherwise. A gap is a silent approval bypass: a score landing in it would route to
+nobody, which invariant 5 forbids. The usual way to open one is deactivating a middle band,
+which is exactly why the whole set is revalidated.
+
+`GET /api/approval-rules` returns `coverage: { valid, problems[] }` alongside the rows, so a
+configuration screen can warn without a second request. `bandForRisk()` performs the lookup
+the approval engine will use, so validation and routing share one definition of a band.
+
 ---
 
 ## 5. Approval invalidation
@@ -93,6 +115,14 @@ should invalidate approval if it changes the commercial risk.
 
 Recalculate risk and create a new approval attempt when required.
 
+### As implemented (contract for the approval slice)
+
+`Quotation.version` increments on material change and doubles as the optimistic concurrency
+token. `ApprovalInstance.quotation_version` records the version that was reviewed;
+`Quotation.approved_version` records the version that completed the chain. Approval is live
+only while `approved_version == version`. A CHECK constraint keeps
+`approved_version <= version`.
+
 ---
 
 ## 6. Margin
@@ -109,6 +139,18 @@ margin =
 ```
 
 The exact cost model is an implementation decision because the source specification only requires live margin impact, not a particular costing methodology.
+
+### As implemented
+
+Cost is per product: `Product.cost_price`, an addition recorded in `DOMAIN_MODEL.md`
+"Implementation deviations". A product response exposes server-computed `unitMargin`
+(`base_price − cost_price`) and `marginPercent`, both in `Prisma.Decimal` — a
+client-supplied margin is never accepted. `QuotationLine.unit_cost` will snapshot the cost at
+add time so a historical quotation stays reproducible when the catalogue changes.
+
+Cost above price is deliberately permitted: the risk and margin engines must be able to
+represent a loss-making line, not be prevented from recording one.
+
 
 ---
 
