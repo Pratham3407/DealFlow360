@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# esbuild ships a platform binary via its install script; tsx, vitest and
+# drizzle-kit all depend on it. Without this allowlist pnpm 10 blocks the script
+# and the binary is never placed.
+onlyBuiltDependencies:
+  - esbuild

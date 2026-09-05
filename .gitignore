@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+*.log
+
+# environment
+.env
+.env.*
+!.env.example
+
+# generated
+apps/api/src/generated/
+apps/api/prisma/generated/
+apps/web/dist/
+.vite/
+.turbo/
+tmp/
+
+# Junk directory created by a mistyped `git clone https://...` — it holds an
+# empty repo and no project files.
+https:/

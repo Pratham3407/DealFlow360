@@ -1,0 +1,21 @@
+{
+  "name": "dealflow360",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DealFlow360 — self-governing B2B quotation-to-cash sales operations platform",
+  "packageManager": "pnpm@10.32.1",
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:api": "pnpm --filter @dealflow/api dev",
+    "dev:web": "pnpm --filter @dealflow/web dev",
+    "build": "pnpm --filter @dealflow/api build && pnpm --filter @dealflow/web build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:api": "pnpm --filter @dealflow/api test",
+    "test:web": "pnpm --filter @dealflow/web test",
+    "db:migrate": "pnpm --filter @dealflow/api db:migrate",
+    "db:reset": "pnpm --filter @dealflow/api db:reset",
+    "db:seed": "pnpm --filter @dealflow/api db:seed",
+    "db:studio": "pnpm --filter @dealflow/api db:studio"
+  }
+}
