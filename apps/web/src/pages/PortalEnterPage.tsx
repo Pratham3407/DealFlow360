@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeMagicLink } from '../api.js';
 import { ApiClientError, type ApiError } from '../api.js';
+import { ErrorNotice } from '../components/States.js';
 
 export function PortalEnterPage() {
   const [searchParams] = useSearchParams();
@@ -29,7 +30,7 @@ export function PortalEnterPage() {
       <form className="login-card" onSubmit={submit}>
         <h1>DealFlow360 Portal</h1>
         <p className="muted" style={{ marginTop: -8 }}>Enter your magic link to access quotations</p>
-        {error && <div className="error">{error.code}: {error.message}</div>}
+        {error && <ErrorNotice error={error} />}
         <div className="col" style={{ marginTop: 12 }}>
           <div>
             <label>Magic Link Token</label>

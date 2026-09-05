@@ -3,6 +3,7 @@ import { api, formatBp, percentToBp, toApiError, type ApiError } from '../api.js
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Product } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 /**
  * Governance configuration.
@@ -31,9 +32,17 @@ export function GovernancePage() {
       <p className="muted" style={{ marginTop: -8 }}>
         The ceilings and recommendation inputs the pricing, risk and upsell engines read.
       </p>
-      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+      <div className="tabs" role="tablist">
         {TABS.map(t => (
-          <button key={t.key} className={t.key === tab ? '' : 'btn secondary'} onClick={() => setTab(t.key)}>{t.label}</button>
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={t.key === tab}
+            className={t.key === tab ? 'is-active' : ''}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
       {tab === 'discounts' && <DiscountRules />}
@@ -84,7 +93,7 @@ function DiscountRules() {
 
   return (
     <>
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <div className="row between" style={{ marginBottom: 12 }}>
@@ -96,7 +105,7 @@ function DiscountRules() {
           evaluated against until it is recalculated, so edits here are auditable rather than retroactive.
         </p>
         <table>
-          <thead><tr><th>Priority</th><th>Name</th><th>Tier</th><th>Category</th><th>Max Discount</th><th>Active</th>{canEdit && <th />}</tr></thead>
+          <thead><tr><th className="num">Priority</th><th>Name</th><th>Tier</th><th>Category</th><th className="num">Max discount</th><th>Active</th>{canEdit && <th />}</tr></thead>
           <tbody>
             {items.map(r => (
               <DiscountRuleRow key={r.id} rule={r} canEdit={canEdit} busy={busy}
@@ -105,8 +114,8 @@ function DiscountRules() {
             ))}
           </tbody>
         </table>
-        {items.length === 0 && !rules.loading && <div className="muted">No discount rules — tier defaults apply.</div>}
-        {rules.loading && <div className="muted">Loading…</div>}
+        {items.length === 0 && !rules.loading && <Empty title="No discount rules" hint="Without a rule, each customer falls back to their tier default ceiling." />}
+        {rules.loading && <Loading />}
       </div>
 
       {showNew && canEdit && (
@@ -123,10 +132,10 @@ function DiscountRules() {
         <h3 style={{ marginTop: 0 }}>Tier Defaults</h3>
         <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>Fallback ceiling when no rule above matches.</p>
         <table>
-          <thead><tr><th>Tier</th><th>Default Ceiling</th></tr></thead>
+          <thead><tr><th>Tier</th><th className="num">Default ceiling</th></tr></thead>
           <tbody>
             {(tiers.data?.data ?? []).map(t => (
-              <tr key={t.id}><td>{t.name}</td><td>{formatBp(t.defaultDiscountCeilingBp)}</td></tr>
+              <tr key={t.id}><td>{t.name}</td><td className="num">{formatBp(t.defaultDiscountCeilingBp)}</td></tr>
             ))}
           </tbody>
         </table>
@@ -295,7 +304,7 @@ function Pairings() {
 
   return (
     <>
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Product Pairings</h3>
@@ -304,7 +313,7 @@ function Pairings() {
           Weight ranks competing suggestions.
         </p>
         <table>
-          <thead><tr><th>Anchor product</th><th>Recommends</th><th>Weight</th></tr></thead>
+          <thead><tr><th>Anchor product</th><th>Recommends</th><th className="num">Weight</th></tr></thead>
           <tbody>
             {items.map(p => (
               <tr key={`${p.productId}-${p.recommendedProductId}`}>
@@ -315,8 +324,8 @@ function Pairings() {
             ))}
           </tbody>
         </table>
-        {items.length === 0 && !pairings.loading && <div className="muted">No pairings configured — the recommender has nothing to suggest.</div>}
-        {pairings.loading && <div className="muted">Loading…</div>}
+        {items.length === 0 && !pairings.loading && <Empty title="No pairings configured" hint="The recommendation engine reads these, so it has nothing to suggest yet." />}
+        {pairings.loading && <Loading />}
       </div>
 
       {canEdit && (
@@ -404,7 +413,7 @@ function Promotions() {
 
   return (
     <>
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Promotions</h3>
@@ -412,7 +421,7 @@ function Promotions() {
           A label shown alongside a recommendation. Higher priority is chosen when a product has several.
         </p>
         <table>
-          <thead><tr><th>Priority</th><th>Label</th><th>Product</th><th>Runs</th><th>Active</th></tr></thead>
+          <thead><tr><th className="num">Priority</th><th>Label</th><th>Product</th><th>Runs</th><th>Active</th></tr></thead>
           <tbody>
             {items.map(p => (
               <tr key={p.id}>
@@ -429,8 +438,8 @@ function Promotions() {
             ))}
           </tbody>
         </table>
-        {items.length === 0 && !promos.loading && <div className="muted">No promotions configured.</div>}
-        {promos.loading && <div className="muted">Loading…</div>}
+        {items.length === 0 && !promos.loading && <Empty title="No promotions configured" hint="A promotion adds a label alongside a recommended product." />}
+        {promos.loading && <Loading />}
       </div>
 
       {canEdit && (

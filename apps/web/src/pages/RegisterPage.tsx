@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { registerCustomer, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
+import { ErrorNotice } from '../components/States.js';
 
 /**
  * Customer self-registration.
@@ -65,7 +66,7 @@ export function RegisterPage() {
           Register your organisation to receive and accept quotations.
         </p>
 
-        {error && <div className="error">{error.code}: {error.message}</div>}
+        {error && <ErrorNotice error={error} />}
 
         <div className="col" style={{ marginTop: 12 }}>
           <div>

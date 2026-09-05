@@ -4,6 +4,7 @@ import { api, formatBp, formatPaise, toApiError, type ApiError } from '../api.js
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Quotation } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 /**
  * Fulfillment is per-order: there is no list endpoint, plans hang off a confirmed
@@ -41,18 +42,18 @@ export function FulfillmentPage() {
         order can be invoiced whether or not its stock has been reserved.
       </p>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Orders</h3>
         <table>
-          <thead><tr><th>Quote #</th><th>Status</th><th>Grand Total</th><th>Promised</th><th>Confirmed</th><th /></tr></thead>
+          <thead><tr><th>Quote</th><th>Status</th><th className="num">Grand total</th><th>Promised</th><th>Confirmed</th><th /></tr></thead>
           <tbody>
             {orders.map(o => (
-              <tr key={o.id} style={o.id === selectedId ? { background: 'var(--panel-2)' } : undefined}>
+              <tr key={o.id} style={o.id === selectedId ? { background: 'var(--accent-soft)', boxShadow: 'inset 3px 0 0 var(--accent)' } : undefined}>
                 <td><Link to={`/quotations/${o.id}`}>{o.quoteNumber}</Link></td>
                 <td><span className={`badge ${o.status.toLowerCase()}`}>{o.status}</span></td>
-                <td>{formatPaise(o.grandTotalPaise)}</td>
+                <td className="num">{formatPaise(o.grandTotalPaise)}</td>
                 <td className="muted mono">{o.promisedDeliveryDate ? new Date(o.promisedDeliveryDate).toLocaleDateString() : '—'}</td>
                 <td className="muted mono">{o.confirmedAt ? new Date(o.confirmedAt).toLocaleDateString() : '—'}</td>
                 <td>
@@ -64,8 +65,8 @@ export function FulfillmentPage() {
             ))}
           </tbody>
         </table>
-        {orders.length === 0 && !loading && <div className="muted">No confirmed orders yet. A customer has to accept a quotation first.</div>}
-        {loading && <div className="muted">Loading…</div>}
+        {orders.length === 0 && !loading && <Empty title="No confirmed orders" hint="A customer has to accept a quotation before it can be allocated." />}
+        {loading && <Loading />}
       </div>
 
       {selectedId && <FulfillmentPlan quotationId={selectedId} />}
@@ -127,8 +128,8 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
     }
   }
 
-  if (loading) return <div className="card muted">Loading plan…</div>;
-  if (loadError) return <div className="error">{loadError.code}: {loadError.message}</div>;
+  if (loading) return <div className="card"><Loading label="Loading allocation plan…" /></div>;
+  if (loadError) return <ErrorNotice error={loadError} />;
 
   const plan = data?.fulfillment ?? null;
   const canPlan = PLANNERS.includes(session?.role ?? '');
@@ -142,7 +143,7 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
           Nothing has been allocated for this order. Generating a plan splits each line across warehouses
           by available stock, minimising shipments.
         </p>
-        {error && <div className="error">{error.code}: {error.message}</div>}
+        {error && <ErrorNotice error={error} />}
         {canPlan && (
           <button disabled={busy !== null} onClick={() => act('recalc', `/api/orders/${quotationId}/fulfillment/recalculate`)}>
             {busy === 'recalc' ? 'Planning…' : 'Generate allocation plan'}
@@ -180,7 +181,7 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
         </div>
       </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="grid grid-3" style={{ marginBottom: 12 }}>
         <div><div className="kpi-label">Shipments</div><div className="kpi">{plan.plannedShipmentCount}</div></div>
@@ -193,21 +194,21 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
 
       <h4>Allocations</h4>
       <table>
-        <thead><tr><th>Line</th><th>Warehouse</th><th>Qty</th><th>Shipment Cost</th><th>Reserved</th><th>Shipped</th></tr></thead>
+        <thead><tr><th>Line</th><th>Warehouse</th><th className="num">Qty</th><th className="num">Shipment cost</th><th>Reserved</th><th>Shipped</th></tr></thead>
         <tbody>
           {plan.allocations.map(a => (
             <tr key={a.id}>
               <td>{a.line?.productName ?? a.productId} <span className="muted mono">{a.line?.productSku}</span></td>
               <td>{a.warehouse?.name ?? a.warehouseId}</td>
-              <td>{a.quantity}</td>
-              <td className="muted">{formatPaise(a.shipmentCostPaise)}</td>
+              <td className="num">{a.quantity}</td>
+              <td className="num muted">{formatPaise(a.shipmentCostPaise)}</td>
               <td><span className={`badge ${a.reserved ? 'approved' : 'draft'}`}>{a.reserved ? 'YES' : 'NO'}</span></td>
               <td className="muted mono">{a.shippedAt ? new Date(a.shippedAt).toLocaleDateString() : '—'}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      {plan.allocations.length === 0 && <div className="muted">No allocations — stock may be unavailable everywhere.</div>}
+      {plan.allocations.length === 0 && <Empty title="Nothing allocated" hint="No warehouse had stock for these lines, so everything went to backorder." />}
 
       {plan.backorders.length > 0 && (
         <>
@@ -216,7 +217,7 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
             {openBackorders.length > 0 && <span className="muted" style={{ fontWeight: 400 }}> · {openBackorders.length} open</span>}
           </h4>
           <table>
-            <thead><tr><th>Product</th><th>Qty short</th><th>Status</th><th>Stock found at</th><th>Resolved</th><th /></tr></thead>
+            <thead><tr><th>Product</th><th className="num">Qty short</th><th>Status</th><th>Stock found at</th><th>Resolved</th><th /></tr></thead>
             <tbody>
               {plan.backorders.map(b => {
                 const line = plan.allocations.find(a => a.quotationLineId === b.quotationLineId)?.line;
@@ -319,7 +320,7 @@ function OverrideForm({ plan, busy, onSubmit, onCancel }: {
         Replaces the engine's recommendation entirely. The server still validates each warehouse has the stock.
       </p>
       <table>
-        <thead><tr><th>Line</th><th>Warehouse</th><th>Qty</th><th /></tr></thead>
+        <thead><tr><th>Line</th><th>Warehouse</th><th className="num">Qty</th><th /></tr></thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={i}>
@@ -426,11 +427,11 @@ function InventoryTable() {
     }
   }
 
-  if (loading) return <div className="muted">Loading…</div>;
+  if (loading) return <Loading />;
 
   return (
     <>
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {missing.length > 0 && (
         <div className="notice warn">
@@ -462,7 +463,7 @@ function InventoryTable() {
         />
       )}
 
-      {groups.length === 0 && <div className="muted">No inventory records.</div>}
+      {groups.length === 0 && <Empty title="No inventory records" hint="Set opening stock per warehouse before quoting a stock-tracked product." />}
 
       {groups.map((group) => {
         const totalAvailable = group.rows.reduce((s, r) => s + r.availableQuantity, 0);

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, formatPaise, formatBp, percentToBp, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 import {
   type Quotation, type QuotationLine, type ApprovalInstance,
   type Customer, type AuditEntry, type Product,
@@ -69,8 +70,8 @@ export function QuotationDetailPage() {
     }
   }
 
-  if (quote.error) return <div className="error">{quote.error.code}: {quote.error.message}</div>;
-  if (quote.loading || !quote.data) return <div className="muted">Loading…</div>;
+  if (quote.error) return <ErrorNotice error={quote.error} />;
+  if (quote.loading || !quote.data) return <Loading />;
 
   const q = quote.data.quote;
   const lines = q.lines ?? [];
@@ -111,7 +112,7 @@ export function QuotationDetailPage() {
         </div>
       </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {q.status === 'PENDING_APPROVAL' && (
         <div className="card" style={{ borderColor: 'var(--warning)' }}>
@@ -136,8 +137,9 @@ export function QuotationDetailPage() {
         <table>
           <thead>
             <tr>
-              <th>Product</th><th>Qty</th><th>List</th><th>Unit</th><th>Disc</th>
-              <th>Ceiling</th><th>Line Total</th>{canEdit && <th />}
+              <th>Product</th><th className="num">Qty</th><th className="num">List</th>
+              <th className="num">Unit</th><th className="num">Disc</th>
+              <th className="num">Ceiling</th><th className="num">Line total</th>{canEdit && <th />}
             </tr>
           </thead>
           <tbody>
@@ -146,7 +148,7 @@ export function QuotationDetailPage() {
             ))}
           </tbody>
         </table>
-        {lines.length === 0 && <div className="muted">No lines yet. Add a product below.</div>}
+        {lines.length === 0 && <Empty title="No lines yet" hint="Add a product below and pricing, ceilings and risk are recalculated straight away." />}
       </div>
 
       {canEdit && <AddLineCard quoteId={q.id} busy={busy} onAct={act} />}
@@ -155,14 +157,14 @@ export function QuotationDetailPage() {
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Recommended add-ons</h3>
           <table>
-            <thead><tr><th>Product</th><th>Category</th><th>Unit Price</th><th>Margin</th><th>Promotion</th><th /></tr></thead>
+            <thead><tr><th>Product</th><th>Category</th><th className="num">Unit price</th><th className="num">Margin</th><th>Promotion</th><th /></tr></thead>
             <tbody>
               {recs.data.data.map(r => (
                 <tr key={r.productId}>
                   <td>{r.productName} <span className="muted mono">{r.productSku}</span></td>
                   <td className="muted">{r.categoryName}</td>
-                  <td>{formatPaise(r.unitPricePaise)}</td>
-                  <td>{formatBp(r.marginBp)}</td>
+                  <td className="num">{formatPaise(r.unitPricePaise)}</td>
+                  <td className="num">{formatBp(r.marginBp)}</td>
                   <td className="muted">{r.promotion ?? '—'}</td>
                   <td>
                     <div className="row" style={{ gap: 4 }}>
@@ -192,8 +194,8 @@ export function QuotationDetailPage() {
           <table>
             <thead>
               <tr>
-                <th>Submitted</th><th>Type</th><th>Line</th><th>Proposed</th>
-                <th>Ver</th><th>Status</th><th>Comment</th>{canAuthor && <th />}
+                <th>Submitted</th><th>Type</th><th>Line</th><th className="num">Proposed</th>
+                <th className="num">Ver</th><th>Status</th><th>Comment</th>{canAuthor && <th />}
               </tr>
             </thead>
             <tbody>
@@ -249,15 +251,15 @@ export function QuotationDetailPage() {
         <div className="card">
           <h3 style={{ marginTop: 0 }}>Approval Chain</h3>
           <table>
-            <thead><tr><th>Seq</th><th>Level</th><th>Status</th><th>Ver</th><th>Risk</th><th>Reason</th><th>Acted</th></tr></thead>
+            <thead><tr><th className="num">Seq</th><th>Level</th><th>Status</th><th className="num">Ver</th><th className="num">Risk</th><th>Reason</th><th>Acted</th></tr></thead>
             <tbody>
               {approvals.map(a => (
                 <tr key={a.id}>
-                  <td>{a.sequence}</td>
+                  <td className="num">{a.sequence}</td>
                   <td>{a.level}</td>
                   <td><span className={`badge ${badgeFor(a.status)}`}>{a.status}</span></td>
                   <td className="muted">v{a.quotationVersion}</td>
-                  <td className="muted">{formatBp(a.riskScoreBp)}</td>
+                  <td className="num muted">{formatBp(a.riskScoreBp)}</td>
                   <td className="muted">{a.reason ?? '—'}</td>
                   <td className="muted mono">{a.actedAt ? new Date(a.actedAt).toLocaleString() : '—'}</td>
                 </tr>
@@ -339,12 +341,12 @@ function LineRow({ line, quoteId, canEdit, busy, onAct }: {
     return (
       <tr>
         <td>{line.productName} <span className="muted mono">{line.productSku}</span></td>
-        <td><input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} style={{ width: 70 }} /></td>
-        <td className="muted">{formatPaise(line.listUnitPricePaise)}</td>
-        <td>{formatPaise(line.unitPricePaise)}</td>
-        <td><input type="number" step="0.01" min="0" max="100" value={disc} onChange={e => setDisc(e.target.value)} style={{ width: 80 }} /></td>
-        <td className="muted">{formatBp(line.effectiveCeilingBp)}</td>
-        <td>{formatPaise(line.lineTotalPaise)}</td>
+        <td className="num"><input type="number" min="1" value={qty} onChange={e => setQty(e.target.value)} style={{ width: 70 }} /></td>
+        <td className="num muted">{formatPaise(line.listUnitPricePaise)}</td>
+        <td className="num">{formatPaise(line.unitPricePaise)}</td>
+        <td className="num"><input type="number" step="0.01" min="0" max="100" value={disc} onChange={e => setDisc(e.target.value)} style={{ width: 80 }} /></td>
+        <td className="num muted">{formatBp(line.effectiveCeilingBp)}</td>
+        <td className="num">{formatPaise(line.lineTotalPaise)}</td>
         <td>
           <div className="row" style={{ gap: 4 }}>
             <button disabled={busy !== null} onClick={save}>{busy === saveLabel ? 'Saving…' : 'Save'}</button>
@@ -358,15 +360,18 @@ function LineRow({ line, quoteId, canEdit, busy, onAct }: {
   return (
     <tr>
       <td>{line.productName} <span className="muted mono">{line.productSku}</span></td>
-      <td>{line.quantity}</td>
-      <td className="muted">{formatPaise(line.listUnitPricePaise)}</td>
-      <td>{formatPaise(line.unitPricePaise)}</td>
-      <td style={{ color: line.violationBp > 0 ? 'var(--danger)' : undefined }}
-          title={line.violationBp > 0 ? `${formatBp(line.violationBp)} over the ceiling` : undefined}>
+      <td className="num">{line.quantity}</td>
+      <td className="num muted">{formatPaise(line.listUnitPricePaise)}</td>
+      <td className="num">{formatPaise(line.unitPricePaise)}</td>
+      <td
+        className="num"
+        style={{ color: line.violationBp > 0 ? 'var(--danger)' : undefined, fontWeight: line.violationBp > 0 ? 620 : undefined }}
+        title={line.violationBp > 0 ? `${formatBp(line.violationBp)} over the ceiling` : undefined}
+      >
         {formatBp(line.discountBp)}
       </td>
-      <td className="muted">{formatBp(line.effectiveCeilingBp)}</td>
-      <td>{formatPaise(line.lineTotalPaise)}</td>
+      <td className="num muted">{formatBp(line.effectiveCeilingBp)}</td>
+      <td className="num">{formatPaise(line.lineTotalPaise)}</td>
       {canEdit && (
         <td>
           <div className="row" style={{ gap: 4 }}>

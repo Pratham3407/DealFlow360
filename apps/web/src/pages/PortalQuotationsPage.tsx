@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { formatPaise } from '../api.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Quotation, type QuotationStatus } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 /**
  * What the customer is actually able to do with a quotation in each state.
@@ -37,9 +38,14 @@ export function PortalQuotationsPage() {
 
   return (
     <div>
-      <h2>My Quotations</h2>
+      <div style={{ marginBottom: 18 }}>
+        <h2 style={{ margin: 0 }}>My quotations</h2>
+        <p className="muted" style={{ margin: '2px 0 0' }}>
+          Everything your account manager has shared with you.
+        </p>
+      </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {awaiting.length > 0 && (
         <div className="notice ok">
@@ -63,12 +69,12 @@ export function PortalQuotationsPage() {
         </h3>
         <QuoteTable rows={rest} />
         {rest.length === 0 && !loading && awaiting.length === 0 && (
-          <div className="muted">No quotations have been shared with you yet.</div>
+          <Empty title="Nothing shared with you yet" hint="Your account manager will send a quotation here when it is ready." />
         )}
         {rest.length === 0 && !loading && awaiting.length > 0 && (
           <div className="muted">Nothing else on file.</div>
         )}
-        {loading && <div className="muted">Loading…</div>}
+        {loading && <Loading />}
       </div>
     </div>
   );

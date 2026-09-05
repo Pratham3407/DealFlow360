@@ -8,6 +8,7 @@ import {
   PRORATION_LABEL, REFUND_LABEL, modeLabel,
 } from '../plan-labels.js';
 import { type Quotation } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 /**
  * Billing is per-order — invoices and subscriptions hang off a confirmed
@@ -49,7 +50,7 @@ export function BillingPage() {
         customer accepts it — billing does not wait for fulfillment.
       </p>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Billable Orders</h3>
@@ -63,7 +64,7 @@ export function BillingPage() {
           </thead>
           <tbody>
             {orders.map((o) => (
-              <tr key={o.id} style={o.id === selectedId ? { background: 'var(--panel-2)' } : undefined}>
+              <tr key={o.id} style={o.id === selectedId ? { background: 'var(--accent-soft)', boxShadow: 'inset 3px 0 0 var(--accent)' } : undefined}>
                 <td><Link to={`/quotations/${o.id}`}>{o.quoteNumber}</Link></td>
                 <td>
                   <span className={`badge ${o.status.toLowerCase()}`}>{o.status}</span>
@@ -92,7 +93,7 @@ export function BillingPage() {
             No billable orders yet. A quotation becomes billable once the customer accepts it in the portal.
           </div>
         )}
-        {loading && <div className="muted">Loading…</div>}
+        {loading && <Loading />}
       </div>
 
       {selectedId && <OrderBilling quotationId={selectedId} />}
@@ -174,8 +175,8 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
     }
   }
 
-  if (loading) return <div className="card muted">Loading billing…</div>;
-  if (loadError) return <div className="error">{loadError.code}: {loadError.message}</div>;
+  if (loading) return <div className="card"><Loading label="Loading billing…" /></div>;
+  if (loadError) return <ErrorNotice error={loadError} />;
 
   const invoices = data?.invoices ?? [];
   const subscriptions = data?.subscriptions ?? [];
@@ -191,7 +192,7 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
         )}
       </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {invoices.length === 0 && subscriptions.length === 0 && (
         <div className="notice">
@@ -240,15 +241,15 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
             </div>
 
             <table>
-              <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Disc</th><th>Total</th></tr></thead>
+              <thead><tr><th>Description</th><th className="num">Qty</th><th className="num">Unit</th><th className="num">Disc</th><th className="num">Total</th></tr></thead>
               <tbody>
                 {inv.lines.map(l => (
                   <tr key={l.id}>
                     <td>{l.description}</td>
-                    <td>{l.quantity}</td>
-                    <td>{formatPaise(l.unitPricePaise)}</td>
-                    <td className="muted">{formatBp(l.discountBp)}</td>
-                    <td>{formatPaise(l.totalPaise)}</td>
+                    <td className="num">{l.quantity}</td>
+                    <td className="num">{formatPaise(l.unitPricePaise)}</td>
+                    <td className="num muted">{formatBp(l.discountBp)}</td>
+                    <td className="num">{formatPaise(l.totalPaise)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -258,12 +259,12 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
               <>
                 <h4 style={{ marginBottom: 4 }}>Payments</h4>
                 <table>
-                  <thead><tr><th>Paid</th><th>Amount</th><th>Method</th><th>Reference</th><th>Status</th></tr></thead>
+                  <thead><tr><th>Paid</th><th className="num">Amount</th><th>Method</th><th>Reference</th><th>Status</th></tr></thead>
                   <tbody>
                     {inv.payments.map(p => (
                       <tr key={p.id}>
                         <td className="muted mono">{p.paidAt ? new Date(p.paidAt).toLocaleString() : '—'}</td>
-                        <td>{formatPaise(p.amountPaise)}</td>
+                        <td className="num">{formatPaise(p.amountPaise)}</td>
                         <td>{p.method}</td>
                         <td className="muted mono">{p.reference ?? '—'}</td>
                         <td><span className={`badge ${p.status === 'COMPLETED' ? 'approved' : 'pending'}`}>{p.status}</span></td>
@@ -278,12 +279,12 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
               <>
                 <h4 style={{ marginBottom: 4 }}>Credit Notes</h4>
                 <table>
-                  <thead><tr><th>Issued</th><th>Amount</th><th>Reason</th></tr></thead>
+                  <thead><tr><th>Issued</th><th className="num">Amount</th><th>Reason</th></tr></thead>
                   <tbody>
                     {inv.creditNotes.map(c => (
                       <tr key={c.id}>
                         <td className="muted mono">{new Date(c.createdAt).toLocaleDateString()}</td>
-                        <td>{formatPaise(c.amountPaise)}</td>
+                        <td className="num">{formatPaise(c.amountPaise)}</td>
                         <td className="muted">{c.reason}</td>
                       </tr>
                     ))}
@@ -398,22 +399,22 @@ function SubscriptionCard({ sub, busy, onAct }: { sub: Subscription; busy: strin
 
       <h4 style={{ marginBottom: 4, marginTop: 12 }}>Billing Schedule</h4>
       <table>
-        <thead><tr><th>#</th><th>Period</th><th>Qty</th><th>Net</th><th>Tax</th><th>Total</th><th>Status</th></tr></thead>
+        <thead><tr><th className="num">#</th><th>Period</th><th className="num">Qty</th><th className="num">Net</th><th className="num">Tax</th><th className="num">Total</th><th>Status</th></tr></thead>
         <tbody>
           {sub.schedules.map(s => (
             <tr key={s.id}>
-              <td>{s.sequence}</td>
+              <td className="num">{s.sequence}</td>
               <td className="mono">{new Date(s.periodStart).toLocaleDateString()} → {new Date(s.periodEnd).toLocaleDateString()}</td>
-              <td>{s.quantity}</td>
-              <td>{formatPaise(s.amountPaise)}</td>
-              <td className="muted">{formatPaise(s.taxAmountPaise)}</td>
-              <td>{formatPaise(s.totalPaise)}</td>
+              <td className="num">{s.quantity}</td>
+              <td className="num">{formatPaise(s.amountPaise)}</td>
+              <td className="num muted">{formatPaise(s.taxAmountPaise)}</td>
+              <td className="num">{formatPaise(s.totalPaise)}</td>
               <td><span className={`badge ${s.status === 'INVOICED' ? 'approved' : s.status === 'CANCELLED' ? 'rejected' : 'draft'}`}>{s.status}</span></td>
             </tr>
           ))}
         </tbody>
       </table>
-      {sub.schedules.length === 0 && <div className="muted">No periods scheduled.</div>}
+      {sub.schedules.length === 0 && <Empty title="No periods scheduled" hint="Generate billing to create the recurring schedule." />}
     </div>
   );
 }
@@ -552,8 +553,8 @@ function SubscriptionPlans() {
   const productName = (id: string) =>
     products.data?.data.find((p) => p.id === id)?.name ?? id;
 
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No subscription plans.</div>;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No subscription plans" hint="A recurring product needs a plan before it can be quoted." />;
 
   return (
     <>
@@ -577,7 +578,7 @@ function SubscriptionPlans() {
               borderRadius: 8,
               padding: 14,
               marginBottom: 12,
-              background: 'var(--panel-2)',
+              background: 'var(--slate-50)',
               opacity: plan.active ? 1 : 0.6,
             }}
           >

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context.js';
 import { ApiClientError, type ApiError } from '../api.js';
+import { ErrorNotice } from '../components/States.js';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -31,7 +32,7 @@ export function LoginPage() {
       <form className="login-card" onSubmit={submit}>
         <h1>DealFlow360</h1>
         <p className="muted" style={{ marginTop: -8 }}>Sign in to the workspace</p>
-        {error && <div className="error">{error.code}: {error.message}</div>}
+        {error && <ErrorNotice error={error} />}
         <div className="col" style={{ marginTop: 12 }}>
           <div>
             <label htmlFor="lg-email">Email</label>

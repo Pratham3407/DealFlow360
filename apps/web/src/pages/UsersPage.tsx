@@ -3,6 +3,7 @@ import { api, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Customer, type Role } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 interface DirectoryUser {
   id: string; email: string; name: string; role: Role;
@@ -96,7 +97,7 @@ export function UsersPage() {
         Employees sign in at the workspace login. Portal users see only their own organisation&rsquo;s quotations.
       </p>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
       {notice && <div className="notice ok">{notice}</div>}
 
       {pane === 'employee' && (
@@ -142,8 +143,8 @@ export function UsersPage() {
           }
           onReset={setResetFor}
         />
-        {employees.length === 0 && !users.loading && <div className="muted">No employees.</div>}
-        {users.loading && <div className="muted">Loading…</div>}
+        {employees.length === 0 && !users.loading && <Empty title="No employees" hint="Add one to give a colleague access to the workspace." />}
+        {users.loading && <Loading />}
       </div>
 
       <div className="card">
@@ -165,7 +166,7 @@ export function UsersPage() {
           onReset={setResetFor}
         />
         {portalUsers.length === 0 && !users.loading && (
-          <div className="muted">No portal users. Customers can also self-register from the sign-up page.</div>
+          <Empty title="No portal users" hint="Add one, or let the customer self-register from the sign-up page." />
         )}
       </div>
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api, formatBp, percentToBp, toApiError, type ApiError } from '../api.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Customer, type Quotation } from '../types.js';
+import { ErrorNotice } from '../components/States.js';
 
 /**
  * Step one of building a quote: pick the customer and the header terms. Lines
@@ -47,9 +48,14 @@ export function NewQuotationPage() {
   return (
     <div>
       <Link to="/quotations" className="muted">← Back to quotations</Link>
-      <h2 style={{ marginTop: 8 }}>New Quotation</h2>
+      <div style={{ margin: '8px 0 18px' }}>
+        <h2 style={{ margin: 0 }}>New quotation</h2>
+        <p className="muted" style={{ margin: '2px 0 0' }}>
+          Pick the customer and the header terms; products are added on the next screen.
+        </p>
+      </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <form className="card" onSubmit={submit} style={{ maxWidth: 640 }}>
         <div className="col">

@@ -3,6 +3,7 @@ import { api, formatBp, formatPaise, percentToBp, rupeesToPaise, toApiError, typ
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Product } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 interface Category {
   id: string; name: string; description: string | null;
@@ -76,7 +77,7 @@ export function CatalogPage() {
           : 'Read-only. An Admin or Sales Manager can add and edit catalogue items.'}
       </p>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {pane === 'category' && canEdit && (
         <NewCategoryForm
@@ -137,7 +138,7 @@ export function CatalogPage() {
             {canEdit && !search && ' Use “+ New product” to add the first one.'}
           </div>
         )}
-        {products.loading && <div className="muted">Loading…</div>}
+        {products.loading && <Loading />}
       </div>
 
       <div className="card">
@@ -155,7 +156,7 @@ export function CatalogPage() {
             ))}
           </tbody>
         </table>
-        {catList.length === 0 && !categories.loading && <div className="muted">No categories yet.</div>}
+        {catList.length === 0 && !categories.loading && <Empty title="No categories yet" hint="A product must belong to a category, so create one first." />}
       </div>
     </div>
   );

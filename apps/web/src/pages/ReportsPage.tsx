@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatBp, formatPaise, loadSession } from '../api.js';
 import { useApiQuery } from '../useApiQuery.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 type Tab = 'pipeline' | 'sales' | 'products' | 'approvals' | 'inventory';
 
@@ -59,11 +60,24 @@ export function ReportsPage() {
 
   return (
     <div>
-      <h2>Reports</h2>
+      <div style={{ marginBottom: 18 }}>
+        <h2 style={{ margin: 0 }}>Reports</h2>
+        <p className="muted" style={{ margin: '2px 0 0' }}>
+          Pipeline, performance and stock position. Every view exports to XLS or PDF.
+        </p>
+      </div>
 
-      <div className="row" style={{ gap: 8, marginBottom: 16 }}>
+      <div className="tabs" role="tablist">
         {TABS.map(t => (
-          <button key={t.key} className={t.key === tab ? '' : 'btn secondary'} onClick={() => setTab(t.key)}>{t.label}</button>
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={t.key === tab}
+            className={t.key === tab ? 'is-active' : ''}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
 
@@ -125,9 +139,9 @@ interface PipelineRow {
 function PipelineReport({ path }: { path: string }) {
   const { data, loading, error } = useApiQuery<{ data: PipelineRow[] }>(path);
   const items = data?.data ?? [];
-  if (error) return <div className="error">{error.code}: {error.message}</div>;
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No quotations in range.</div>;
+  if (error) return <ErrorNotice error={error} />;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No quotations in range" hint="Widen the date range or clear the status filter." />;
 
   const total = items.reduce((s, r) => s + r.grandTotalPaise, 0);
   const margin = items.reduce((s, r) => s + r.marginPaise, 0);
@@ -140,16 +154,16 @@ function PipelineReport({ path }: { path: string }) {
         <div><div className="kpi-label">Total Margin</div><div className="kpi">{formatPaise(margin)}</div></div>
       </div>
       <table>
-        <thead><tr><th>#</th><th>Status</th><th>Lines</th><th>Total</th><th>Margin</th><th>Risk</th><th>Created</th><th>Confirmed</th></tr></thead>
+        <thead><tr><th>Quote</th><th>Status</th><th className="num">Lines</th><th className="num">Total</th><th className="num">Margin</th><th className="num">Risk</th><th>Created</th><th>Confirmed</th></tr></thead>
         <tbody>
           {items.map(r => (
             <tr key={r.id}>
               <td><Link to={`/quotations/${r.id}`}>{r.quoteNumber}</Link></td>
               <td><span className={`badge ${r.status.toLowerCase()}`}>{r.status}</span></td>
               <td className="muted">{r.lines}</td>
-              <td>{formatPaise(r.grandTotalPaise)}</td>
-              <td>{formatBp(r.marginBp)}</td>
-              <td>{formatBp(r.riskScoreBp)}</td>
+              <td className="num">{formatPaise(r.grandTotalPaise)}</td>
+              <td className="num">{formatBp(r.marginBp)}</td>
+              <td className="num">{formatBp(r.riskScoreBp)}</td>
               <td className="muted mono">{new Date(r.createdAt).toLocaleDateString()}</td>
               <td className="muted mono">{r.confirmedAt ? new Date(r.confirmedAt).toLocaleDateString() : '—'}</td>
             </tr>
@@ -168,21 +182,21 @@ interface SalesRow {
 function SalesReport({ path }: { path: string }) {
   const { data, loading, error } = useApiQuery<{ data: SalesRow[] }>(path);
   const items = data?.data ?? [];
-  if (error) return <div className="error">{error.code}: {error.message}</div>;
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No sales data in range.</div>;
+  if (error) return <ErrorNotice error={error} />;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No sales in range" hint="No quotation was created inside these dates." />;
   return (
     <table>
-      <thead><tr><th>Rep</th><th>Quotes</th><th>Net Total</th><th>Discount</th><th>Cost</th><th>Margin</th></tr></thead>
+      <thead><tr><th>Rep</th><th className="num">Quotes</th><th className="num">Net total</th><th className="num">Discount</th><th className="num">Cost</th><th className="num">Margin</th></tr></thead>
       <tbody>
         {items.map(r => (
           <tr key={r.salesRepId}>
             <td>{r.salesRepName}</td>
-            <td>{r.count}</td>
-            <td>{formatPaise(r.netTotalPaise)}</td>
-            <td className="muted">{formatPaise(r.discountTotalPaise)}</td>
-            <td className="muted">{formatPaise(r.costTotalPaise)}</td>
-            <td>{formatPaise(r.marginPaise)}</td>
+            <td className="num">{r.count}</td>
+            <td className="num">{formatPaise(r.netTotalPaise)}</td>
+            <td className="num muted">{formatPaise(r.discountTotalPaise)}</td>
+            <td className="num muted">{formatPaise(r.costTotalPaise)}</td>
+            <td className="num">{formatPaise(r.marginPaise)}</td>
           </tr>
         ))}
       </tbody>
@@ -198,21 +212,21 @@ interface ProductRow {
 function ProductsReport({ path }: { path: string }) {
   const { data, loading, error } = useApiQuery<{ data: ProductRow[] }>(path);
   const items = data?.data ?? [];
-  if (error) return <div className="error">{error.code}: {error.message}</div>;
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No product data in range.</div>;
+  if (error) return <ErrorNotice error={error} />;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No product sales in range" hint="No quotation line falls inside these dates." />;
   return (
     <table>
-      <thead><tr><th>Product</th><th>Category</th><th>Units</th><th>Lines</th><th>Net Total</th><th>Discount</th></tr></thead>
+      <thead><tr><th>Product</th><th>Category</th><th className="num">Units</th><th className="num">Lines</th><th className="num">Net total</th><th className="num">Discount</th></tr></thead>
       <tbody>
         {items.map(r => (
           <tr key={r.productId}>
             <td>{r.productName} <span className="muted mono">{r.productSku}</span></td>
             <td className="muted">{r.categoryName}</td>
-            <td>{r.units}</td>
+            <td className="num">{r.units}</td>
             <td className="muted">{r.lineCount}</td>
-            <td>{formatPaise(r.netTotalPaise)}</td>
-            <td className="muted">{formatPaise(r.discountTotalPaise)}</td>
+            <td className="num">{formatPaise(r.netTotalPaise)}</td>
+            <td className="num muted">{formatPaise(r.discountTotalPaise)}</td>
           </tr>
         ))}
       </tbody>
@@ -228,12 +242,12 @@ interface ApprovalReportRow {
 function ApprovalsReport({ path }: { path: string }) {
   const { data, loading, error } = useApiQuery<{ data: ApprovalReportRow[] }>(path);
   const items = data?.data ?? [];
-  if (error) return <div className="error">{error.code}: {error.message}</div>;
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No approval data.</div>;
+  if (error) return <ErrorNotice error={error} />;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No approvals raised yet" hint="Only quotations whose risk crossed a threshold appear here." />;
   return (
     <table>
-      <thead><tr><th>Quote #</th><th>Level</th><th>Status</th><th>Count</th><th>Peak Risk</th></tr></thead>
+      <thead><tr><th>Quote</th><th>Level</th><th>Status</th><th className="num">Count</th><th className="num">Peak risk</th></tr></thead>
       <tbody>
         {items.map((r, i) => (
           <tr key={`${r.quoteId}-${r.level}-${r.status}-${i}`}>
@@ -244,8 +258,8 @@ function ApprovalsReport({ path }: { path: string }) {
                 {r.status}
               </span>
             </td>
-            <td>{r.count}</td>
-            <td>{formatBp(r.riskScoreBp)}</td>
+            <td className="num">{r.count}</td>
+            <td className="num">{formatBp(r.riskScoreBp)}</td>
           </tr>
         ))}
       </tbody>
@@ -257,9 +271,9 @@ function ApprovalsReport({ path }: { path: string }) {
 function GenericReport({ path }: { path: string }) {
   const { data, loading, error } = useApiQuery<{ data: Array<Record<string, unknown>> }>(path);
   const items = data?.data ?? [];
-  if (error) return <div className="error">{error.code}: {error.message}</div>;
-  if (loading) return <div className="muted">Loading…</div>;
-  if (items.length === 0) return <div className="muted">No data.</div>;
+  if (error) return <ErrorNotice error={error} />;
+  if (loading) return <Loading />;
+  if (items.length === 0) return <Empty title="No data" />;
   const columns = Object.keys(items[0] ?? {});
   return (
     <table>

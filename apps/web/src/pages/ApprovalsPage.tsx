@@ -4,6 +4,7 @@ import { api, formatBp, formatPaise, toApiError, type ApiError } from '../api.js
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type ApprovalInstance, type Quotation, type Role } from '../types.js';
+import { Empty, ErrorNotice, Loading } from '../components/States.js';
 
 type ApprovalRow = ApprovalInstance & { quotation: Quotation | null };
 
@@ -142,37 +143,70 @@ export function ApprovalsPage() {
 
   return (
     <div>
-      <div className="row between" style={{ marginBottom: 4 }}>
-        <h2 style={{ margin: 0 }}>Approvals</h2>
-        <div className="row" style={{ gap: 8 }}>
-          <button className={scope === 'mine' ? '' : 'btn secondary'} onClick={() => setScope('mine')}>
+      <div className="row between" style={{ marginBottom: 14 }}>
+        <div>
+          <h2 style={{ margin: 0 }}>Approvals</h2>
+          <p className="muted" style={{ margin: '2px 0 0' }}>
+            Signed in as{' '}
+            {role === 'SALES_MANAGER' ? 'Sales Manager'
+              : role === 'FINANCE_OPERATIONS' ? 'Finance'
+              : role === 'SALES_REP' ? 'Sales Rep'
+              : 'Admin'}
+            . A high-risk quote needs Sales Manager first, then Finance — in that order.
+          </p>
+        </div>
+        <div className="tabs" role="tablist" style={{ marginBottom: 0 }}>
+          <button
+            role="tab"
+            aria-selected={scope === 'mine'}
+            className={scope === 'mine' ? 'is-active' : ''}
+            onClick={() => setScope('mine')}
+          >
             Needs me ({myCount})
           </button>
-          <button className={scope === 'open' ? '' : 'btn secondary'} onClick={() => setScope('open')}>
+          <button
+            role="tab"
+            aria-selected={scope === 'open'}
+            className={scope === 'open' ? 'is-active' : ''}
+            onClick={() => setScope('open')}
+          >
             All open ({openCount})
           </button>
-          <button className={scope === 'all' ? '' : 'btn secondary'} onClick={() => setScope('all')}>
+          <button
+            role="tab"
+            aria-selected={scope === 'all'}
+            className={scope === 'all' ? 'is-active' : ''}
+            onClick={() => setScope('all')}
+          >
             History ({chains.length})
           </button>
         </div>
       </div>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Signed in as {role === 'SALES_MANAGER' ? 'Sales Manager' : role === 'FINANCE_OPERATIONS' ? 'Finance' : role}.
-        {' '}A high-risk quote needs Sales Manager first, then Finance — in that order.
-      </p>
 
-      {loadError && <div className="error">{loadError.code}: {loadError.message}</div>}
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {loadError && <ErrorNotice error={loadError} />}
+      {error && <ErrorNotice error={error} />}
 
-      {loading && <div className="card muted">Loading…</div>}
+      {loading && <div className="card"><Loading label="Loading approval chains…" /></div>}
 
       {!loading && visible.length === 0 && (
-        <div className="card muted">
-          {scope === 'mine'
-            ? 'Nothing is waiting on you. Switch to "All open" to see quotes queued behind another reviewer.'
-            : scope === 'open'
-              ? 'No quotations are awaiting approval.'
-              : 'No approvals have been raised yet.'}
+        <div className="card">
+          {scope === 'mine' ? (
+            <Empty
+              title="Nothing is waiting on you"
+              hint="Quotes queued behind another reviewer are under “All open”."
+              action={<button className="btn secondary" onClick={() => setScope('open')}>Show all open</button>}
+            />
+          ) : scope === 'open' ? (
+            <Empty
+              title="No quotations awaiting approval"
+              hint="A quote only raises an approval when its risk score crosses a configured band."
+            />
+          ) : (
+            <Empty
+              title="No approvals raised yet"
+              hint="Submit a quotation with a discount over its ceiling and the chain appears here."
+            />
+          )}
         </div>
       )}
 

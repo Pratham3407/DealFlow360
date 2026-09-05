@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { api, formatBp, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
+import { ErrorNotice, Loading } from '../components/States.js';
 
 interface Setting {
   key: string; value: string; valueType: string;
@@ -179,7 +180,7 @@ export function SettingsPage() {
           : 'Read-only. Only an Admin can change engine calibration.'}
       </p>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Your account</h3>
@@ -213,7 +214,7 @@ export function SettingsPage() {
         </div>
       ))}
 
-      {settings.loading && <div className="card muted">Loading settings…</div>}
+      {settings.loading && <div className="card"><Loading label="Loading settings…" /></div>}
 
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Approval bands</h3>
@@ -222,7 +223,7 @@ export function SettingsPage() {
           Governance page.
         </p>
         {rules.loading ? (
-          <div className="muted">Loading…</div>
+          <Loading />
         ) : (
           <table>
             <thead>
@@ -256,7 +257,7 @@ export function SettingsPage() {
           The fallback discount ceiling for a customer when no category-specific rule matches.
         </p>
         {tiers.loading ? (
-          <div className="muted">Loading…</div>
+          <Loading />
         ) : (
           <table>
             <thead><tr><th>Tier</th><th className="num">Rank</th><th className="num">Default ceiling</th><th>Notes</th></tr></thead>

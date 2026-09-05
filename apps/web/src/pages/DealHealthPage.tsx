@@ -4,6 +4,7 @@ import { api, formatBp, formatPaise, toApiError, type ApiError } from '../api.js
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type DealHealthEvent, type Quotation } from '../types.js';
+import { Loading, ErrorNotice } from '../components/States.js';
 
 type EventRow = DealHealthEvent & {
   nudgeCount: number;
@@ -133,8 +134,8 @@ export function DealHealthPage() {
         Work the list top-down: highest severity, oldest first.
       </p>
 
-      {loadError && <div className="error">{loadError.code}: {loadError.message}</div>}
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {loadError && <ErrorNotice error={loadError} />}
+      {error && <ErrorNotice error={error} />}
       {flash?.id === 'sweep' && <div className="notice ok">{flash.text}</div>}
 
       <div className="grid grid-3" style={{ marginBottom: 16 }}>
@@ -153,23 +154,35 @@ export function DealHealthPage() {
       </div>
 
       <div className="card">
-        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button className={typeFilter === '' ? '' : 'btn secondary'} onClick={() => setTypeFilter('')}>
-            All types
-          </button>
-          {(Object.keys(ALERT_KINDS) as Array<keyof typeof ALERT_KINDS>).map((k) => (
-            <button key={k} className={typeFilter === k ? '' : 'btn secondary'} onClick={() => setTypeFilter(k)}>
-              {ALERT_KINDS[k].title}
+        <div className="row between" style={{ gap: 12 }}>
+          <div className="tabs" role="tablist" style={{ marginBottom: 0 }}>
+            <button
+              role="tab"
+              aria-selected={typeFilter === ''}
+              className={typeFilter === '' ? 'is-active' : ''}
+              onClick={() => setTypeFilter('')}
+            >
+              All types
             </button>
-          ))}
-          <div style={{ flex: 1 }} />
+            {(Object.keys(ALERT_KINDS) as Array<keyof typeof ALERT_KINDS>).map((k) => (
+              <button
+                key={k}
+                role="tab"
+                aria-selected={typeFilter === k}
+                className={typeFilter === k ? 'is-active' : ''}
+                onClick={() => setTypeFilter(k)}
+              >
+                {ALERT_KINDS[k].title}
+              </button>
+            ))}
+          </div>
           <button className="btn secondary" onClick={() => setShowResolved((v) => !v)}>
             {showResolved ? 'Hide resolved' : 'Show resolved'}
           </button>
         </div>
       </div>
 
-      {loading && <div className="card muted">Loading…</div>}
+      {loading && <div className="card"><Loading label="Loading alerts…" /></div>}
 
       {!loading && triaged.length === 0 && (
         <div className="card">

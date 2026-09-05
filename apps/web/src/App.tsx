@@ -12,6 +12,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from
 import { ApiClientError, type ApiError } from './api.js';
 import { AuthProvider, useAuth } from './auth-context.js';
 import { canAccess } from './nav.js';
+import { ErrorNotice } from './components/States.js';
 import { LoginPage } from './pages/LoginPage.js';
 import { RegisterPage } from './pages/RegisterPage.js';
 import { UsersPage } from './pages/UsersPage.js';
@@ -52,7 +53,7 @@ function ErrorBoundary({ children }: { children: ReactNode }) {
   const [err, setErr] = useState<ApiError | null>(null);
   return (
     <ErrorCtx.Provider value={{ error: err, setError: setErr, clearError: () => setErr(null) }}>
-      {err && <div className="error" style={{ margin: 12 }}>{err.code}: {err.message}</div>}
+      {err && <div style={{ margin: 12 }}><ErrorNotice error={err} /></div>}
       {children}
     </ErrorCtx.Provider>
   );

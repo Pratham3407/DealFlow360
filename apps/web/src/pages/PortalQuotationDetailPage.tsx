@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, formatPaise, formatBp, percentToBp, toApiError, type ApiError } from '../api.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Quotation, type QuotationLine } from '../types.js';
+import { ErrorNotice, Empty, Loading } from '../components/States.js';
 
 /** The portal payload strips cost/margin, so it is a narrower shape than Quotation. */
 type PortalLine = Pick<QuotationLine,
@@ -68,8 +69,8 @@ export function PortalQuotationDetailPage() {
     }
   }
 
-  if (loadError) return <div className="error">{loadError.code}: {loadError.message}</div>;
-  if (loading || !data) return <div className="muted">Loading…</div>;
+  if (loadError) return <ErrorNotice error={loadError} />;
+  if (loading || !data) return <Loading />;
 
   const q = data.quote;
   const lines = q.lines ?? [];
@@ -102,7 +103,7 @@ export function PortalQuotationDetailPage() {
         )}
       </div>
 
-      {error && <div className="error">{error.code}: {error.message}</div>}
+      {error && <ErrorNotice error={error} />}
 
       {canAct ? (
         <div className="notice ok">
@@ -134,22 +135,22 @@ export function PortalQuotationDetailPage() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Items</h3>
         <table>
-          <thead><tr><th>Product</th><th>Qty</th><th>List</th><th>Your Price</th><th>Discount</th><th>Type</th><th>Line Total</th></tr></thead>
+          <thead><tr><th>Product</th><th className="num">Qty</th><th className="num">List</th><th className="num">Your price</th><th className="num">Discount</th><th>Type</th><th className="num">Line total</th></tr></thead>
           <tbody>
             {lines.map(l => (
               <tr key={l.id}>
                 <td>{l.productName} <span className="muted mono">{l.productSku}</span></td>
-                <td>{l.quantity}</td>
-                <td className="muted">{formatPaise(l.listUnitPricePaise)}</td>
-                <td>{formatPaise(l.unitPricePaise)}</td>
-                <td>{formatBp(l.discountBp)}</td>
+                <td className="num">{l.quantity}</td>
+                <td className="num muted">{formatPaise(l.listUnitPricePaise)}</td>
+                <td className="num">{formatPaise(l.unitPricePaise)}</td>
+                <td className="num">{formatBp(l.discountBp)}</td>
                 <td className="muted">{l.lineType === 'RECURRING' ? 'Recurring' : 'One-time'}</td>
-                <td>{formatPaise(l.lineTotalPaise)}</td>
+                <td className="num">{formatPaise(l.lineTotalPaise)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        {lines.length === 0 && <div className="muted">No items.</div>}
+        {lines.length === 0 && <Empty title="No items on this quotation" />}
       </div>
 
       {showCounter && canAct && (
