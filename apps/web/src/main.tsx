@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.js';
+import { AppErrorBoundary } from './components/AppErrorBoundary.js';
 import { ThemeProvider, applyStoredTheme } from './theme.js';
 import './styles.css';
 
@@ -9,8 +10,10 @@ applyStoredTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <AppErrorBoundary>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 );

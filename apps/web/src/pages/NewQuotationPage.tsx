@@ -23,7 +23,6 @@ export function NewQuotationPage() {
   const [busy, setBusy] = useState(false);
 
   const selected = customers.find(c => c.id === customerId);
-  console.log("hello");
 
   async function submit(e: FormEvent) {
     e.preventDefault();
