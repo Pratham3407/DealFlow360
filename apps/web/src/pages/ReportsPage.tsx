@@ -60,12 +60,7 @@ export function ReportsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
-        <h2 style={{ margin: 0 }}>Reports</h2>
-        <p className="muted" style={{ margin: '2px 0 0' }}>
-          Pipeline, performance and stock position. Every view exports to XLS or PDF.
-        </p>
-      </div>
+      <h2>Reports</h2>
 
       <div className="tabs" role="tablist">
         {TABS.map(t => (

@@ -68,12 +68,7 @@ export function DashboardPage() {
   return (
     <div>
       <div className="row between" style={{ marginBottom: 18 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Dashboard</h2>
-          <p className="muted" style={{ margin: '2px 0 0' }}>
-            Where the book stands right now.
-          </p>
-        </div>
+        <h2 style={{ margin: 0 }}>Dashboard</h2>
         <Link to="/quotations/new" className="btn" style={{ textDecoration: 'none' }}>
           New quotation
         </Link>

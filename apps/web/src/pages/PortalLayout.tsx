@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth-context.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import type { ReactNode } from 'react';
 
 export function PortalLayout({ children }: { children: ReactNode }) {
@@ -20,6 +21,7 @@ export function PortalLayout({ children }: { children: ReactNode }) {
         <div className="who">
           <div>{session?.name}</div>
           <div className="muted">{session?.email}</div>
+          <ThemeToggle />
           <button className="btn secondary" style={{ marginTop: 8, width: '100%' }} onClick={logout}>
             Sign out
           </button>

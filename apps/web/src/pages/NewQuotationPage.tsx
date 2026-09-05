@@ -48,12 +48,7 @@ export function NewQuotationPage() {
   return (
     <div>
       <Link to="/quotations" className="muted">← Back to quotations</Link>
-      <div style={{ margin: '8px 0 18px' }}>
-        <h2 style={{ margin: 0 }}>New quotation</h2>
-        <p className="muted" style={{ margin: '2px 0 0' }}>
-          Pick the customer and the header terms; products are added on the next screen.
-        </p>
-      </div>
+      <h2 style={{ marginTop: 10 }}>New quotation</h2>
 
       {error && <ErrorNotice error={error} />}
 

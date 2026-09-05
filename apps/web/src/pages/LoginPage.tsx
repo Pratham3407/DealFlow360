@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context.js';
 import { ApiClientError, type ApiError } from '../api.js';
 import { ErrorNotice } from '../components/States.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -47,6 +48,9 @@ export function LoginPage() {
             New customer? <Link to="/register">Create an account</Link>
             {' · '}Have a magic link? <Link to="/portal/enter">Use it</Link>
           </div>
+        </div>
+        <div className="row" style={{ justifyContent: 'flex-end', paddingTop: 14 }}>
+          <ThemeToggle />
         </div>
       </form>
     </div>

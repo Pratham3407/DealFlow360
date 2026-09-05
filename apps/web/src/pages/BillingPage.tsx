@@ -46,8 +46,7 @@ export function BillingPage() {
     <div>
       <h2>Billing</h2>
       <p className="muted" style={{ marginTop: -8 }}>
-        Invoices, payments and recurring schedules per order. An order becomes billable as soon as the
-        customer accepts it — billing does not wait for fulfillment.
+        Billable once the customer accepts. Does not wait on fulfillment.
       </p>
 
       {error && <ErrorNotice error={error} />}
@@ -558,10 +557,7 @@ function SubscriptionPlans() {
 
   return (
     <>
-      <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-        A plan decides how a recurring line is billed, what happens when the quantity changes mid-period,
-        and what a cancellation costs.
-      </p>
+
 
       {items.map((plan) => {
         const proration = modeLabel(PRORATION_LABEL, plan.prorationMode);

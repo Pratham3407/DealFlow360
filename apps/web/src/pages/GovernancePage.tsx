@@ -30,7 +30,7 @@ export function GovernancePage() {
     <div>
       <h2>Governance</h2>
       <p className="muted" style={{ marginTop: -8 }}>
-        The ceilings and recommendation inputs the pricing, risk and upsell engines read.
+        Discount ceilings and recommendation inputs.
       </p>
       <div className="tabs" role="tablist">
         {TABS.map(t => (
@@ -101,8 +101,7 @@ function DiscountRules() {
           {canEdit && <button onClick={() => setShowNew(v => !v)}>+ New rule</button>}
         </div>
         <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-          The most specific matching rule wins. A quote line already priced keeps the ceiling it was
-          evaluated against until it is recalculated, so edits here are auditable rather than retroactive.
+          Most specific match wins. Priced lines keep their ceiling until recalculated.
         </p>
         <table>
           <thead><tr><th className="num">Priority</th><th>Name</th><th>Tier</th><th>Category</th><th className="num">Max discount</th><th>Active</th>{canEdit && <th />}</tr></thead>
@@ -309,7 +308,6 @@ function Pairings() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Product Pairings</h3>
         <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-          When the anchor product is on a quote, the paired product is offered as an add-on.
           Weight ranks competing suggestions.
         </p>
         <table>
@@ -418,7 +416,7 @@ function Promotions() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Promotions</h3>
         <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-          A label shown alongside a recommendation. Higher priority is chosen when a product has several.
+          Shown alongside a recommendation; highest priority wins.
         </p>
         <table>
           <thead><tr><th className="num">Priority</th><th>Label</th><th>Product</th><th>Runs</th><th>Active</th></tr></thead>

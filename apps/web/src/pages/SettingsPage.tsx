@@ -219,8 +219,7 @@ export function SettingsPage() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Approval bands</h3>
         <p className="muted" style={{ fontSize: 12, marginTop: -4 }}>
-          Where a quotation&rsquo;s risk score lands decides who must sign it off. Edit these on the
-          Governance page.
+          Edit these on the Governance page.
         </p>
         {rules.loading ? (
           <Loading />

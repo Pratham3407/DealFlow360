@@ -46,7 +46,13 @@ export function SkeletonRows({ columns, rows = 4 }: { columns: number; rows?: nu
 export function Empty({ title, hint, action }: { title: string; hint?: string; action?: ReactNode }) {
   return (
     <div className="state center">
-      <div className="empty-icon" aria-hidden="true">—</div>
+      <div className="empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
+             stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z" />
+          <path d="M3.5 7.5 12 12m0 0 8.5-4.5M12 12v9" opacity=".45" />
+        </svg>
+      </div>
       <div className="state-title">{title}</div>
       {hint && <div className="state-hint">{hint}</div>}
       {action && <div style={{ marginTop: 8 }}>{action}</div>}

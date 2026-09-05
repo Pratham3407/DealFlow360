@@ -11,12 +11,7 @@ export function CustomersPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
-        <h2 style={{ margin: 0 }}>Customers</h2>
-        <p className="muted" style={{ margin: '2px 0 0' }}>
-          The accounts you can quote to, and the tier that sets each one&rsquo;s default discount ceiling.
-        </p>
-      </div>
+      <h2>Customers</h2>
 
       {error && <ErrorNotice error={error} />}
 

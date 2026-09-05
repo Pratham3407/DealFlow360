@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exchangeMagicLink } from '../api.js';
 import { ApiClientError, type ApiError } from '../api.js';
 import { ErrorNotice } from '../components/States.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 
 export function PortalEnterPage() {
   const [searchParams] = useSearchParams();
@@ -44,6 +45,9 @@ export function PortalEnterPage() {
             />
           </div>
           <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Enter Portal'}</button>
+        </div>
+        <div className="row" style={{ justifyContent: 'flex-end', paddingTop: 14 }}>
+          <ThemeToggle />
         </div>
       </form>
     </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { registerCustomer, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { ErrorNotice } from '../components/States.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 
 /**
  * Customer self-registration.
@@ -152,6 +153,9 @@ export function RegisterPage() {
           <div className="muted" style={{ fontSize: 11 }}>
             New organisations start on the entry pricing tier. Your account manager can move you up.
           </div>
+        </div>
+        <div className="row" style={{ justifyContent: 'flex-end', paddingTop: 14 }}>
+          <ThemeToggle />
         </div>
       </form>
     </div>

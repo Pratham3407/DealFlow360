@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth-context.js';
 import { navFor, isReadOnly } from '../nav.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import type { ReactNode } from 'react';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -36,7 +37,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         <div className="who">
           <div>{session?.name}</div>
           <div className="muted">{ROLE_LABEL[session?.role ?? ''] ?? session?.role}</div>
-          <div className="muted" style={{ fontSize: 11 }}>{session?.email}</div>
+          <ThemeToggle />
           <button className="btn secondary" style={{ marginTop: 8, width: '100%' }} onClick={logout}>
             Sign out
           </button>

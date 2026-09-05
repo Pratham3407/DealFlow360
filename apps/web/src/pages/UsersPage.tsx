@@ -94,7 +94,7 @@ export function UsersPage() {
         </div>
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        Employees sign in at the workspace login. Portal users see only their own organisation&rsquo;s quotations.
+        Portal users only ever see their own organisation.
       </p>
 
       {error && <ErrorNotice error={error} />}

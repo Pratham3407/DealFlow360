@@ -4,7 +4,7 @@ import { api, formatBp, formatPaise, toApiError, type ApiError } from '../api.js
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type DealHealthEvent, type Quotation } from '../types.js';
-import { Loading, ErrorNotice } from '../components/States.js';
+import { Empty, Loading, ErrorNotice } from '../components/States.js';
 
 type EventRow = DealHealthEvent & {
   nudgeCount: number;
@@ -130,8 +130,7 @@ export function DealHealthPage() {
         )}
       </div>
       <p className="muted" style={{ marginTop: 0 }}>
-        A background sweep watches every live deal and raises an alert when one stops behaving.
-        Work the list top-down: highest severity, oldest first.
+        Highest severity first, then oldest.
       </p>
 
       {loadError && <ErrorNotice error={loadError} />}
@@ -186,15 +185,10 @@ export function DealHealthPage() {
 
       {!loading && triaged.length === 0 && (
         <div className="card">
-          <div className="notice ok">
-            No {typeFilter ? ALERT_KINDS[typeFilter].title.toLowerCase() : ''} alerts.
-            {' '}Every live deal is behaving as expected.
-          </div>
-          {canSweep && (
-            <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>
-              The sweep also runs on a timer. Use Re-scan to check immediately after changing a deal.
-            </p>
-          )}
+          <Empty
+            title={`No ${typeFilter ? ALERT_KINDS[typeFilter].title.toLowerCase() : 'open'} alerts`}
+            hint="Every live deal is behaving as expected."
+          />
         </div>
       )}
 

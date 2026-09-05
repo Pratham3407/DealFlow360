@@ -39,12 +39,7 @@ export function QuotationsPage() {
   return (
     <div>
       <div className="row between" style={{ marginBottom: 18 }}>
-        <div>
-          <h2 style={{ margin: 0 }}>Quotations</h2>
-          <p className="muted" style={{ margin: '2px 0 0' }}>
-            Every deal in the book, newest first.
-          </p>
-        </div>
+        <h2 style={{ margin: 0 }}>Quotations</h2>
         <Link to="/quotations/new" className="btn" style={{ textDecoration: 'none' }}>
           New quotation
         </Link>

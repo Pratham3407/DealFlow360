@@ -38,12 +38,7 @@ export function PortalQuotationsPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 18 }}>
-        <h2 style={{ margin: 0 }}>My quotations</h2>
-        <p className="muted" style={{ margin: '2px 0 0' }}>
-          Everything your account manager has shared with you.
-        </p>
-      </div>
+      <h2>My quotations</h2>
 
       {error && <ErrorNotice error={error} />}
 

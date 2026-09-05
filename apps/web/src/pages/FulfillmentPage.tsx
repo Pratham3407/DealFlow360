@@ -38,8 +38,7 @@ export function FulfillmentPage() {
     <div>
       <h2>Fulfillment</h2>
       <p className="muted" style={{ marginTop: -8 }}>
-        Warehouse allocation for confirmed orders. Runs alongside billing rather than before it — an
-        order can be invoiced whether or not its stock has been reserved.
+        Warehouse allocation. Runs alongside billing, not before it.
       </p>
 
       {error && <ErrorNotice error={error} />}
@@ -140,8 +139,7 @@ function FulfillmentPlan({ quotationId }: { quotationId: string }) {
       <div className="card" style={{ borderColor: 'var(--accent)' }}>
         <h3 style={{ marginTop: 0 }}>No plan yet</h3>
         <p className="muted">
-          Nothing has been allocated for this order. Generating a plan splits each line across warehouses
-          by available stock, minimising shipments.
+          Splits each line across warehouses by available stock, minimising shipments.
         </p>
         {error && <ErrorNotice error={error} />}
         {canPlan && (
