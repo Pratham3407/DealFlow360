@@ -1,14 +1,16 @@
 /**
- * Theme switch: sun / moon / auto.
+ * Theme switch: sun / moon.
  *
- * Three states rather than a binary toggle, because "follow the system" is a real
- * preference and a two-way switch silently loses it.
+ * Two buttons, both explicit. The stored preference can still be `'system'` — that
+ * is the default before anyone chooses, and it keeps tracking the OS — so the
+ * highlight follows the *resolved* theme rather than the stored choice. Otherwise a
+ * fresh visitor would see neither button selected.
  */
 
 import type { ReactElement } from 'react';
-import { useTheme, type ThemeChoice } from '../theme.js';
+import { useTheme, type ResolvedTheme } from '../theme.js';
 
-const OPTIONS: Array<{ value: ThemeChoice; label: string; icon: ReactElement }> = [
+const OPTIONS: Array<{ value: ResolvedTheme; label: string; icon: ReactElement }> = [
   {
     value: 'light',
     label: 'Light',
@@ -34,21 +36,10 @@ const OPTIONS: Array<{ value: ThemeChoice; label: string; icon: ReactElement }> 
       </svg>
     ),
   },
-  {
-    value: 'system',
-    label: 'System',
-    icon: (
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-        <rect x="1.8" y="2.6" width="12.4" height="8.4" rx="1.4"
-          fill="none" stroke="currentColor" strokeWidth="1.3" />
-        <path d="M5.6 13.4h4.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      </svg>
-    ),
-  },
 ];
 
 export function ThemeToggle() {
-  const { choice, setChoice } = useTheme();
+  const { resolved, setChoice } = useTheme();
 
   return (
     <div className="theme-switch" role="group" aria-label="Colour theme">
@@ -56,10 +47,10 @@ export function ThemeToggle() {
         <button
           key={o.value}
           type="button"
-          title={o.label}
-          aria-label={o.label}
-          aria-pressed={choice === o.value}
-          className={choice === o.value ? 'is-active' : ''}
+          title={`${o.label} theme`}
+          aria-label={`${o.label} theme`}
+          aria-pressed={resolved === o.value}
+          className={resolved === o.value ? 'is-active' : ''}
           onClick={() => setChoice(o.value)}
         >
           {o.icon}

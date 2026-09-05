@@ -172,6 +172,41 @@ describe('error boundary', () => {
   });
 });
 
+describe('theme switch', () => {
+  async function mountToggle() {
+    const { ThemeToggle } = await import('../src/components/ThemeToggle.js');
+    root = createRoot(container);
+    await act(async () => {
+      root!.render(createElement(ThemeProvider, null, createElement(ThemeToggle)));
+    });
+    return Array.from(container.querySelectorAll('button'));
+  }
+
+  it('offers light and dark only', async () => {
+    const buttons = await mountToggle();
+    expect(buttons).toHaveLength(2);
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Light theme', 'Dark theme']);
+  });
+
+  it('marks the resolved theme active even before a choice is stored', async () => {
+    // Nothing in localStorage means the stored choice is 'system'; the control must
+    // still show which theme is actually in effect.
+    const buttons = await mountToggle();
+    const pressed = buttons.filter((b) => b.getAttribute('aria-pressed') === 'true');
+    expect(pressed).toHaveLength(1);
+    expect(pressed[0]!.getAttribute('aria-label')).toBe('Light theme');
+  });
+
+  it('switches the document theme when clicked', async () => {
+    const buttons = await mountToggle();
+    await act(async () => {
+      buttons[1]!.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+    });
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(window.localStorage.getItem('dealflow.theme')).toBe('dark');
+  });
+});
+
 describe('theme', () => {
   it('paints light onto <html> by default', () => {
     applyStoredTheme();
