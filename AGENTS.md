@@ -1130,6 +1130,69 @@ Express app in-process through Supertest.
 
 # 36. Recent Changes
 
+## 2026-09-05 — Slice 3: Phase 3 Quotation engine (backend)
+
+**What changed.** The quotation lifecycle became real: create, read, list, patch,
+lines, server-authoritative arithmetic, versioning with optimistic concurrency, and
+a validated state machine.
+
+**Why.** `docs/IMPLEMENTATION_PLAN.md` Phase 3. Slices 4-10 all read a quotation's
+figures, so the arithmetic and the version semantics had to be settled and pinned
+by tests before anything scores, routes, allocates or invoices them.
+
+**Where.**
+
+```text
+server/prisma/migrations/20260905135805_quote_number_sequence/  NEW  quotation_number_seq
+server/src/modules/pricing/priceResolution.ts        NEW  price list -> base price + variant
+server/src/modules/quotations/quotationMath.ts       NEW  PURE calculation
+server/src/modules/quotations/quotationStates.ts     NEW  PURE transitions + edit gate
+server/src/modules/quotations/quotationNumber.ts     NEW  sequence-backed numbering
+server/src/modules/quotations/quotationShared.ts     NEW  read shape, recalc, version bump
+server/src/modules/quotations/quotationService.ts    NEW  create/list/get/patch/recalc/submit
+server/src/modules/quotations/quotationLineService.ts NEW add/update/remove
+server/src/modules/quotations/quotationRoutes.ts     NEW  9 routes
+server/src/http/routes.ts                            mounts /api/quotations
+server/tests/unit/{priceResolution,quotationMath,quotationStates}.test.ts  NEW
+server/tests/integration/{quotations,quotationLines}.test.ts               NEW
+docs/API_SPEC.md          quotation + line endpoints, concurrency, visibility
+docs/BUSINESS_RULES.md    6a calculation order, 6b price resolution, 6c versioning
+docs/STATE_MACHINES.md    full transition table with per-edge reasoning
+docs/DOMAIN_MODEL.md      deviation 10: sparse positions, line merging
+```
+
+**Endpoints added (9).**
+
+```text
+/api/quotations              GET POST GET/:id PATCH/:id
+                             POST/:id/recalculate POST/:id/submit
+/api/quotations/:id/lines    POST PATCH/:lineId DELETE/:lineId
+```
+
+**How it works.** Two pure modules hold the rules. `quotationMath.ts` is the single
+definition of how a quotation adds up; `quotationStates.ts` is the single
+definition of which transitions and edits are legal. Neither touches the database,
+so both are exhaustively unit tested and slices 4-10 reuse them rather than
+reimplementing.
+
+Every mutation runs in one transaction that bumps the version by conditional
+update, applies the change, recalculates from the persisted lines, and writes the
+audit row. The money columns have exactly one writer — the recalculation routine —
+so totals are always derivable from the lines and a client total can never reach
+the database.
+
+**Key decisions.** Recorded in §37: the calculation order and its four embedded
+decisions, sparse line positions with merge-on-identical-terms, the version
+semantics, and the quote-number sequence.
+
+**What was tested.** See §35. 128 new tests, taking the suite from 332 to 460.
+
+**What remains.** Risk scoring decides the submit target state (slice 4); approval
+instances are created on submit (slice 5). The transition table, version semantics
+and audit shape do not change when they land. No quotation UI yet.
+
+**Known problems.** See §38, items 13-15.
+
 ## 2026-09-05 — Slice 2: Phase 2 Master data (backend)
 
 **What changed.** All 12 master-data entities gained full CRUD behind the existing
@@ -1321,7 +1384,6 @@ risk scores. Percentages are stored as `12.5` meaning 12.5%. Never binary
 floating point (§24). Arithmetic uses `Prisma.Decimal`.
 
 ## Blended risk model — contract for the risk-engine slice _(2026-09-05)_
-
 The seeded `ApprovalRule` thresholds assume this 0–100 score. Implement it as
 specified or change the seed with it.
 
