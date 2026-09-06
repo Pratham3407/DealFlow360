@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, formatPaise, formatBp, percentToBp, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
+import { canAccess } from '../nav.js';
 import { ErrorNotice, Empty, Loading } from '../components/States.js';
 import {
   type Quotation, type QuotationLine, type ApprovalInstance,
@@ -72,6 +73,23 @@ export function QuotationDetailPage() {
 
   if (quote.error) return <ErrorNotice error={quote.error} />;
   if (quote.loading || !quote.data) return <Loading />;
+  if (!quote.data.quote) {
+    return (
+      <Empty
+        title="Quotation not found"
+        hint="It may have been removed, or the link is out of date."
+        action={
+          <Link
+            to={canAccess(session?.role, '/quotations') ? '/quotations' : '/approvals'}
+            className="btn secondary"
+            style={{ textDecoration: 'none' }}
+          >
+            Back
+          </Link>
+        }
+      />
+    );
+  }
 
   const q = quote.data.quote;
   const lines = q.lines ?? [];
@@ -83,7 +101,9 @@ export function QuotationDetailPage() {
 
   return (
     <div>
-      <Link to="/quotations" className="muted">← Back to quotations</Link>
+      {canAccess(session?.role, '/quotations')
+        ? <Link to="/quotations" className="muted">← Back to quotations</Link>
+        : <Link to="/approvals" className="muted">← Back to approvals</Link>}
 
       <div className="row between" style={{ marginTop: 8, marginBottom: 16 }}>
         <div>

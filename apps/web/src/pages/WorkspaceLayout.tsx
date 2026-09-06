@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth-context.js';
-import { navFor, isReadOnly } from '../nav.js';
+import { navFor } from '../nav.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -20,7 +20,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   // Only the areas this role can actually use — see nav.ts for the rationale.
   const items = navFor(session?.role);
-  const canAccessBackend = session?.role === 'ADMIN' || session?.role === 'SALES_MANAGER';
+  const canAccessBackend = session?.role === 'ADMIN';
 
   function handleReloadData() {
     setReloading(true);
@@ -46,11 +46,9 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
         <nav>
           {items.map((item) => {
             const active = location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
-            const readOnly = isReadOnly(session?.role, item.path);
             return (
               <Link key={item.path} to={item.path} className={active ? 'active' : ''}>
                 {item.label}
-                {readOnly && <span className="nav-tag">view</span>}
               </Link>
             );
           })}

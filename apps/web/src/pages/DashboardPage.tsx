@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { formatPaise, formatBp } from '../api.js';
 import { useApiQuery } from '../useApiQuery.js';
+import { useAuth } from '../auth-context.js';
+import { canAccess } from '../nav.js';
 import { Empty, ErrorNotice, Loading } from '../components/States.js';
 import { type Quotation, type DealHealthEvent, type ApprovalInstance } from '../types.js';
 
@@ -16,6 +18,7 @@ interface KpiCard {
  * the quotation list plus the approval and health feeds.
  */
 export function DashboardPage() {
+  const { session } = useAuth();
   const all = useApiQuery<{ data: Quotation[] }>('/api/quotations?limit=200');
   const approvals = useApiQuery<{ data: ApprovalInstance[] }>('/api/approvals');
   const health = useApiQuery<{ data: DealHealthEvent[] }>('/api/deal-health');
@@ -101,7 +104,9 @@ export function DashboardPage() {
       <div className="card">
         <div className="row between" style={{ marginBottom: 10 }}>
           <h3 style={{ margin: 0 }}>Recent activity</h3>
-          <Link to="/quotations">View all quotations →</Link>
+{canAccess(session?.role, '/quotations') && (
+            <Link to="/quotations">View all quotations →</Link>
+          )}
         </div>
         {loading ? (
           <Loading label="Loading quotations…" />

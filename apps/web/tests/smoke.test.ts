@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { App } from '../src/App.js';
+import { navFor } from '../src/nav.js';
 import { AppErrorBoundary } from '../src/components/AppErrorBoundary.js';
 import { ThemeProvider, applyStoredTheme } from '../src/theme.js';
 
@@ -130,6 +131,39 @@ describe('workspace routes mount', () => {
       expect(fatalErrors(), `error while rendering ${route}`).toEqual([]);
     });
   }
+});
+
+describe('each role mounts its own tabs', () => {
+  const ROLES = ['SALES_REP', 'SALES_MANAGER', 'FINANCE_OPERATIONS', 'ADMIN'] as const;
+
+  for (const role of ROLES) {
+    it(`${role} renders every page in its sidebar`, async () => {
+      for (const item of navFor(role)) {
+        await mountAt(item.path, { ...ADMIN_SESSION, role });
+        expect(container.innerHTML.length, `${role} at ${item.path}`).toBeGreaterThan(0);
+        expect(fatalErrors(), `${role} at ${item.path}`).toEqual([]);
+        await act(async () => root!.unmount());
+        root = null;
+      }
+    });
+  }
+
+  it('Finance can open a quotation it has no tab for', async () => {
+    // The approvals queue and the billing page both link here; removing the tab
+    // must not remove the ability to follow those links.
+    await mountAt('/quotations/00000000-0000-0000-0000-000000000042', {
+      ...ADMIN_SESSION,
+      role: 'FINANCE_OPERATIONS',
+    });
+    expect(container.innerHTML.length).toBeGreaterThan(0);
+    expect(fatalErrors()).toEqual([]);
+  });
+
+  it('a rep sent to a page above their role lands somewhere usable', async () => {
+    await mountAt('/users', { ...ADMIN_SESSION, role: 'SALES_REP' });
+    expect(container.textContent).not.toContain('Add employee');
+    expect(fatalErrors()).toEqual([]);
+  });
 });
 
 describe('portal routes mount', () => {

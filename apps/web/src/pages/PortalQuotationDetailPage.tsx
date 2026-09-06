@@ -72,6 +72,20 @@ export function PortalQuotationDetailPage() {
   if (loadError) return <ErrorNotice error={loadError} />;
   if (loading || !data) return <Loading />;
 
+  if (!data.quote) {
+    return (
+      <Empty
+        title="Quotation not available"
+        hint="It may have been withdrawn. Your account manager can re-send it."
+        action={
+          <Link to="/portal/quotations" className="btn secondary" style={{ textDecoration: 'none' }}>
+            Back to my quotations
+          </Link>
+        }
+      />
+    );
+  }
+
   const q = data.quote;
   const lines = q.lines ?? [];
   const negotiations = q.negotiations ?? [];
