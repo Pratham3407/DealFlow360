@@ -46,7 +46,6 @@ export function LoginPage() {
           <button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           <div className="hint">
             New customer? <Link to="/register">Create an account</Link>
-            {' · '}Have a magic link? <Link to="/portal/enter">Use it</Link>
           </div>
         </div>
         <div className="row" style={{ justifyContent: 'flex-end', paddingTop: 14 }}>
