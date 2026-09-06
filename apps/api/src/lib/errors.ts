@@ -68,8 +68,13 @@ export const unprocessable = (
 
 /** Detect a PostgreSQL `not-null`, `check`, `unique` or FK violation. */
 export function pgConstraintMessage(error: unknown): string | null {
-  if (!error || typeof error !== 'object' || !('code' in error)) return null;
-  const code = (error as { code?: unknown }).code;
+  if (!error || typeof error !== 'object') return null;
+  let target: Record<string, unknown> = error as Record<string, unknown>;
+  if (!('code' in target) && 'cause' in target && target.cause && typeof target.cause === 'object') {
+    target = target.cause as Record<string, unknown>;
+  }
+  if (!('code' in target)) return null;
+  const code = target.code;
   const CONSTRAINT_MESSAGES: Record<string, string> = {
     '23505': 'A record with these values already exists',
     '23502': 'A required value is missing',

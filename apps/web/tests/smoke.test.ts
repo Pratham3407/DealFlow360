@@ -18,7 +18,7 @@ import { ThemeProvider, applyStoredTheme } from '../src/theme.js';
 
 const ROUTES = [
   '/login', '/register', '/portal/enter',
-  '/', '/dashboard', '/quotations', '/quotations/new', '/approvals',
+  '/', '/dashboard', '/quotations', '/pipeline', '/quotations/new', '/approvals',
   '/fulfillment', '/billing', '/customers', '/catalog',
   '/deal-health', '/reports', '/governance', '/users', '/settings',
 ];

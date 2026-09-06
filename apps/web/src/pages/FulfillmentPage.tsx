@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { api, formatBp, formatPaise, toApiError, type ApiError } from '../api.js';
+import { api, formatBp, formatPaise, rupeesToPaise, toApiError, type ApiError } from '../api.js';
 import { useAuth } from '../auth-context.js';
 import { useApiQuery } from '../useApiQuery.js';
 import { type Quotation } from '../types.js';
@@ -382,9 +382,11 @@ function InventoryTable() {
   const [restockFor, setRestockFor] = useState<InventoryRow | null>(null);
   const [qty, setQty] = useState('');
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddWh, setShowAddWh] = useState(false);
 
   const canRestock = ['FINANCE_OPERATIONS', 'ADMIN'].includes(session?.role ?? '');
   const canSetStock = session?.role === 'ADMIN';
+  const canAddWarehouse = session?.role === 'ADMIN';
 
   const items = data?.data ?? [];
 
@@ -445,11 +447,24 @@ function InventoryTable() {
           {groups.length} warehouse{groups.length === 1 ? '' : 's'}
         </span>
         {canSetStock && (
-          <button className={showAdd ? '' : 'btn secondary'} onClick={() => setShowAdd((v) => !v)}>
-            Set opening stock
-          </button>
+          <div className="row" style={{ gap: 8 }}>
+            <button className={showAddWh ? '' : 'btn secondary'} onClick={() => { setShowAddWh((v) => !v); setShowAdd(false); }}>
+              + New warehouse
+            </button>
+            <button className={showAdd ? '' : 'btn secondary'} onClick={() => { setShowAdd((v) => !v); setShowAddWh(false); }}>
+              Set opening stock
+            </button>
+          </div>
         )}
       </div>
+
+      {showAddWh && canAddWarehouse && (
+        <NewWarehouseForm
+          busy={busy}
+          onSubmit={(body) => run('new-warehouse', '/api/warehouses', body, () => { setShowAddWh(false); warehouses.refetch(); })}
+          onCancel={() => setShowAddWh(false)}
+        />
+      )}
 
       {showAdd && canSetStock && (
         <SetStockForm
@@ -647,3 +662,71 @@ function SetStockForm({ warehouses, products, busy, onSubmit, onCancel }: {
     </form>
   );
 }
+
+function NewWarehouseForm({ busy, onSubmit, onCancel }: {
+  busy: string | null;
+  onSubmit: (body: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+  const [shippingWeight, setShippingWeight] = useState('100');
+  const [baseShipmentCost, setBaseShipmentCost] = useState('500');
+  const [leadTimeDays, setLeadTimeDays] = useState('3');
+  const [priority, setPriority] = useState('50');
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!code.trim() || !name.trim()) return;
+    onSubmit({
+      code: code.trim().toUpperCase(),
+      name: name.trim(),
+      location: location.trim() || undefined,
+      shippingWeightBp: Math.round((parseFloat(shippingWeight) || 100) * 100),
+      baseShipmentCostPaise: rupeesToPaise(baseShipmentCost),
+      leadTimeDays: parseInt(leadTimeDays, 10) || 2,
+      priority: parseInt(priority, 10) || 50,
+      active: true,
+    });
+  }
+
+  return (
+    <form onSubmit={submit} style={{ marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--accent)' }}>
+      <h4 style={{ marginTop: 0 }}>Add new warehouse (Admin only)</h4>
+      <div className="grid grid-3">
+        <div>
+          <label htmlFor="wh-code">Warehouse Code</label>
+          <input id="wh-code" placeholder="e.g. WEST" value={code} onChange={(e) => setCode(e.target.value)} required autoFocus />
+        </div>
+        <div>
+          <label htmlFor="wh-name">Warehouse Name</label>
+          <input id="wh-name" placeholder="e.g. West Depot" value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        <div>
+          <label htmlFor="wh-loc">Location</label>
+          <input id="wh-loc" placeholder="e.g. Pune, Maharashtra" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="wh-weight">Shipping Weight % <span className="muted">(100 = neutral)</span></label>
+          <input id="wh-weight" type="number" min="1" step="1" value={shippingWeight} onChange={(e) => setShippingWeight(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="wh-cost">Base Shipment Cost (₹)</label>
+          <input id="wh-cost" type="number" min="0" step="0.01" value={baseShipmentCost} onChange={(e) => setBaseShipmentCost(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="wh-lead">Lead Time (days)</label>
+          <input id="wh-lead" type="number" min="0" value={leadTimeDays} onChange={(e) => setLeadTimeDays(e.target.value)} />
+        </div>
+      </div>
+      <div className="row" style={{ gap: 8, marginTop: 12 }}>
+        <button type="submit" disabled={busy !== null || !code.trim() || !name.trim()}>
+          {busy === 'new-warehouse' ? 'Creating…' : 'Create warehouse'}
+        </button>
+        <button type="button" className="btn secondary" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+

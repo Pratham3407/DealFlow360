@@ -54,6 +54,9 @@ export function saveSession(session: Session): void {
 
 export function clearSession(): void {
   localStorage.removeItem(STORAGE_KEY);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('dealflow:auth-cleared'));
+  }
 }
 
 interface RequestOptions {
@@ -161,12 +164,14 @@ export function logout(): void {
   clearSession();
 }
 
-export function formatPaise(paise: number): string {
+export function formatPaise(paise?: number | null): string {
+  if (paise === null || paise === undefined || Number.isNaN(paise)) return '₹0';
   const rupees = paise / 100;
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(rupees);
 }
 
-export function formatBp(bp: number): string {
+export function formatBp(bp?: number | null): string {
+  if (bp === null || bp === undefined || Number.isNaN(bp)) return '0.0%';
   return `${(bp / 100).toFixed(1)}%`;
 }
 

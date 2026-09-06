@@ -441,7 +441,10 @@ packages/shared/src/
 
 Design documents live in `DealFlow360_Project_Docs_reviewed/` — PRD, domain model,
 business rules, RBAC, state machines, API spec, workflows, seed data and the
-acceptance criteria.
+acceptance criteria. Key deliverables include:
+- [One-Page Architecture & Data Model Diagram](file:///c:/Users/prath/dealflow/DealFlow360/DealFlow360_Project_Docs_reviewed/ARCHITECTURE.md)
+- [5-Minute Live Demo Script (Two End-to-End Flows)](file:///c:/Users/prath/dealflow/DealFlow360/DealFlow360_Project_Docs_reviewed/DEMO_SCRIPT.md)
+- [Future Roadmap & Next Steps](file:///c:/Users/prath/dealflow/DealFlow360/DealFlow360_Project_Docs_reviewed/NEXT_STEPS.md)
 
 ---
 

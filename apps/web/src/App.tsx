@@ -101,6 +101,7 @@ export function App() {
             <Route path="/portal/quotations/:id" element={<RequireAuth portal><PortalLayout><PortalQuotationDetailPage /></PortalLayout></RequireAuth>} />
 
             <Route path="/quotations" element={<RequireAuth portal={false}><WorkspaceLayout><QuotationsPage /></WorkspaceLayout></RequireAuth>} />
+            <Route path="/pipeline" element={<RequireAuth portal={false}><WorkspaceLayout><QuotationsPage initialView="pipeline" /></WorkspaceLayout></RequireAuth>} />
             <Route path="/quotations/new" element={<RequireAuth portal={false}><WorkspaceLayout><NewQuotationPage /></WorkspaceLayout></RequireAuth>} />
             <Route path="/quotations/:id" element={<RequireAuth portal={false}><WorkspaceLayout><QuotationDetailPage /></WorkspaceLayout></RequireAuth>} />
             <Route path="/approvals" element={<RequireAuth portal={false}><WorkspaceLayout><ApprovalsPage /></WorkspaceLayout></RequireAuth>} />

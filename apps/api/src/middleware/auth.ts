@@ -11,6 +11,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { verifyAccessToken } from '../auth/jwt.js';
 import { forbidden, unauthorized } from '../lib/errors.js';
 import { INTERNAL_ROLES, type Role } from '@dealflow/shared';
+import { db } from '../db/client.js';
 
 declare global {
   namespace Express {
@@ -25,18 +26,39 @@ declare global {
 }
 
 export function authenticate(): RequestHandler {
-  return (req, _res, next) => {
+  return async (req, _res, next) => {
     const header = req.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) {
       return next(unauthorized());
     }
-    const payload = verifyAccessToken(header.slice('Bearer '.length));
-    req.user = {
-      id: payload.sub,
-      role: payload.role,
-      customerId: payload.customerId ?? null,
-    };
-    next();
+    let payload;
+    try {
+      payload = verifyAccessToken(header.slice('Bearer '.length));
+    } catch (err) {
+      return next(err);
+    }
+
+    try {
+      const user = await db.query.users.findFirst({
+        where: (t, { eq }) => eq(t.id, payload.sub),
+        columns: { id: true, role: true, customerId: true, active: true },
+      });
+      if (!user) {
+        return next(unauthorized('USER_NOT_FOUND', 'Session user no longer exists; please sign in again'));
+      }
+      if (!user.active) {
+        return next(unauthorized('ACCOUNT_DISABLED', 'This account has been deactivated'));
+      }
+
+      req.user = {
+        id: user.id,
+        role: user.role,
+        customerId: user.customerId ?? null,
+      };
+      next();
+    } catch (err) {
+      next(err);
+    }
   };
 }
 

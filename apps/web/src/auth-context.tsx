@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { clearSession, loadSession, login as apiLogin, logout as apiLogout, type Session } from './api.js';
+import { api, clearSession, loadSession, login as apiLogin, logout as apiLogout, type Session } from './api.js';
 
 interface AuthContext {
   session: Session | null;
@@ -19,9 +19,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onStorage = () => setSession(loadSession());
+    const onAuthCleared = () => {
+      setSession(null);
+      navigate('/login', { replace: true });
+    };
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+    window.addEventListener('dealflow:auth-cleared', onAuthCleared);
+
+    if (session?.token) {
+      api<{ user: unknown }>('/api/auth/me').catch(() => {
+        // If the session token is expired or the user no longer exists,
+        // api() calls clearSession() on 401, firing onAuthCleared.
+      });
+    }
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('dealflow:auth-cleared', onAuthCleared);
+    };
+  }, [navigate]);
 
   const value: AuthContext = {
     session,

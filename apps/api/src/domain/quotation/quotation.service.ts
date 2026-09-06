@@ -91,13 +91,13 @@ export async function listQuotations(exec: DbExecutor, filters: QuoteListFilters
   if (filters.from) conditions.push(sql`${quotations.createdAt} >= ${filters.from.toISOString()}`);
   if (filters.to) conditions.push(sql`${quotations.createdAt} <= ${filters.to.toISOString()}`);
 
-  const rows = await exec
-    .select()
-    .from(quotations)
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(desc(quotations.createdAt))
-    .limit(filters.limit ?? 100)
-    .offset(filters.offset ?? 0);
+  const rows = await exec.query.quotations.findMany({
+    where: conditions.length ? and(...conditions) : undefined,
+    with: { customer: true, salesRep: true },
+    orderBy: desc(quotations.createdAt),
+    limit: filters.limit ?? 100,
+    offset: filters.offset ?? 0,
+  });
 
   return rows;
 }

@@ -35,6 +35,7 @@ export const WORKSPACE_NAV: readonly NavItem[] = [
   // Quoting. Finance reads a quotation to know what it is approving and billing,
   // but never authors one.
   { path: '/quotations', label: 'Quotations', roles: ALL_INTERNAL, readOnlyFor: ['FINANCE_OPERATIONS'] },
+  { path: '/pipeline', label: 'Pipeline', roles: ALL_INTERNAL, readOnlyFor: ['FINANCE_OPERATIONS'] },
 
   // Approvals. A rep cannot act on any rung, but needs to see which reviewer is
   // holding their quote — that is the whole reason the queue is legible.

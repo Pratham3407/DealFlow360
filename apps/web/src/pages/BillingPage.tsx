@@ -107,7 +107,8 @@ export function BillingPage() {
 
 interface InvoiceLine {
   id: string; description: string; quantity: number;
-  unitPricePaise: number; discountBp: number; totalPaise: number;
+  unitPricePaise: number; discountBp: number;
+  amountPaise?: number; totalPaise?: number;
 }
 
 interface Payment {
@@ -248,7 +249,7 @@ function OrderBilling({ quotationId }: { quotationId: string }) {
                     <td className="num">{l.quantity}</td>
                     <td className="num">{formatPaise(l.unitPricePaise)}</td>
                     <td className="num muted">{formatBp(l.discountBp)}</td>
-                    <td className="num">{formatPaise(l.totalPaise)}</td>
+                    <td className="num">{formatPaise(l.amountPaise ?? l.totalPaise)}</td>
                   </tr>
                 ))}
               </tbody>
